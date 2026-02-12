@@ -496,25 +496,43 @@ app.post('/api/save-contact', async (req, res) => {
                 
                 const wid = contact.id;
                 
-                // Try with WID object
-                try {
-                    await utils.saveContactAction(wid, firstName, lastName || '');
-                    return { success: true, method: 'saveContactAction(wid, first, last)' };
-                } catch(e1) {
-                    // Try with just contact id  
+                // Try saveContactBatchAction with various formats
+                const phoneNum = wid.user;
+                const attempts = [];
+                
+                const formats = [
+                    [{id: wid, phone: phoneNum, firstName, lastName: lastName || ''}],
+                    [{phone: phoneNum, firstName, lastName: lastName || ''}],
+                    [{id: contact, firstName, lastName: lastName || ''}],
+                    [{jid: wid._serialized, firstName, lastName: lastName || ''}],
+                ];
+                
+                for (let i = 0; i < formats.length; i++) {
                     try {
-                        await utils.saveContactAction(contact.id._serialized, firstName, lastName || '');
-                        return { success: true, method: 'saveContactAction(serialized, first, last)' };
-                    } catch(e2) {
-                        // Try batch action
-                        try {
-                            await utils.saveContactBatchAction([{id: wid, firstName, lastName: lastName || ''}]);
-                            return { success: true, method: 'saveContactBatchAction' };
-                        } catch(e3) {
-                            return { success: false, errors: [e1.message, e2.message, e3.message], widType: typeof wid, widKeys: Object.keys(wid || {}).join(',') };
-                        }
+                        await utils.saveContactBatchAction(formats[i]);
+                        return { success: true, method: `saveContactBatchAction format ${i}` };
+                    } catch(e) {
+                        attempts.push(e.message);
                     }
                 }
+                
+                // Try saveContactAction with different formats
+                const actionFormats = [
+                    [contact, firstName, lastName || '', phoneNum],
+                    [wid._serialized, firstName, lastName || '', phoneNum],
+                    [phoneNum, firstName, lastName || ''],
+                ];
+                
+                for (let i = 0; i < actionFormats.length; i++) {
+                    try {
+                        await utils.saveContactAction(...actionFormats[i]);
+                        return { success: true, method: `saveContactAction format ${i}` };
+                    } catch(e) {
+                        attempts.push(e.message);
+                    }
+                }
+                
+                return { success: false, attempts: attempts.slice(0, 5) };
             } catch (e) {
                 return { success: false, error: e.message };
             }
