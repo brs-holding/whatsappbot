@@ -47,18 +47,26 @@ th{color:#25D366;font-size:12px;text-transform:uppercase}
 .stage-card:hover{border-color:#25D366}
 .stage-card .count{font-size:24px;font-weight:bold;color:#25D366}
 .stage-card .name{font-size:11px;opacity:.7;margin-top:4px}
-.msg{padding:8px 12px;margin:4px 0;border-radius:6px;font-size:13px}
+.msg{padding:8px 12px;margin:4px 0;border-radius:6px;font-size:13px;max-width:85%}
 .msg.in{background:#0d1a30}
-.msg.out{background:#0a3d2a;margin-left:15%}
+.msg.out{background:#0a3d2a;margin-left:auto}
 .msg small{opacity:.5;font-size:10px}
 .event{padding:6px 10px;margin:3px 0;border-radius:4px;font-size:12px;background:#0d1a30;display:flex;justify-content:space-between}
 .event .type{color:#25D366;font-weight:bold}
-.file-upload{border:2px dashed #25D366;padding:30px;text-align:center;border-radius:8px;cursor:pointer;margin-bottom:10px;font-size:13px}
+.file-upload{border:2px dashed #25D366;padding:20px;text-align:center;border-radius:8px;cursor:pointer;margin-bottom:10px;font-size:13px}
 .file-upload:hover{background:rgba(37,211,102,.05)}
 .qr-section{text-align:center;padding:30px}
 .qr-section img{max-width:280px;margin:15px auto;display:block}
 .kill-switch{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
 pre{background:#0a0a1a;padding:12px;border-radius:6px;overflow-x:auto;font-size:12px;max-height:400px;overflow-y:auto;border:1px solid #222}
+.pfp{width:60px;height:60px;border-radius:50%;object-fit:cover;border:2px solid #25D366;background:#222}
+.pfp-sm{width:32px;height:32px;border-radius:50%;object-fit:cover;border:1px solid #333;background:#222;vertical-align:middle;margin-right:6px}
+.contact-header{display:flex;align-items:center;gap:15px;margin-bottom:15px}
+.chat-box{max-height:350px;overflow-y:auto;padding:10px;background:#0a0a1a;border-radius:8px;border:1px solid #222;margin:10px 0}
+.chat-input{display:flex;gap:8px;margin-top:8px}
+.chat-input input{flex:1;margin:0}
+.chat-input button{white-space:nowrap}
+.variation{padding:8px 12px;margin:4px 0;background:#0d1a30;border-radius:6px;font-size:13px;border-left:3px solid #25D366}
 @media(max-width:768px){.stats{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}}
 </style>
 </head>
@@ -75,6 +83,7 @@ pre{background:#0a0a1a;padding:12px;border-radius:6px;overflow-x:auto;font-size:
     <button class="tab active" onclick="show('dash')">📊 Dashboard</button>
     <button class="tab" onclick="show('pipeline')">🔄 Pipeline</button>
     <button class="tab" onclick="show('contacts')">📇 Contacts</button>
+    <button class="tab" onclick="show('outreach')">🚀 Outreach</button>
     <button class="tab" onclick="show('send')">📤 Send</button>
     <button class="tab" onclick="show('kb')">📚 Knowledge</button>
     <button class="tab" onclick="show('events')">📋 Events</button>
@@ -96,7 +105,7 @@ pre{background:#0a0a1a;padding:12px;border-radius:6px;overflow-x:auto;font-size:
     <div class="card"><h3>🔄 Pipeline Stages</h3><div class="pipeline-row" id="pipelineDetailed"></div></div>
     <div class="card"><h3>Contacts in Stage</h3>
         <input type="text" id="stageFilter" placeholder="Click a stage above to filter..." readonly>
-        <table><thead><tr><th>Phone</th><th>Name</th><th>Stage</th><th>Consent</th><th>Risk</th><th>Actions</th></tr></thead>
+        <table><thead><tr><th></th><th>Phone</th><th>Name</th><th>Stage</th><th>Consent</th><th>Actions</th></tr></thead>
         <tbody id="stageContacts"></tbody></table>
     </div>
 </div>
@@ -109,24 +118,59 @@ pre{background:#0a0a1a;padding:12px;border-radius:6px;overflow-x:auto;font-size:
             <input id="cName" placeholder="Name"><input id="cCompany" placeholder="Company">
             <button onclick="addContact()">Add</button>
         </div>
-        <div class="card"><h3>📁 Batch Import</h3>
+        <div class="card"><h3>📋 Quick Add (Comma-Separated)</h3>
+            <textarea id="bulkPhones" rows="3" placeholder="Enter phone numbers separated by commas&#10;e.g. 4917612345678, 4915123456789, 491761234567"></textarea>
+            <input id="bulkBatchType" placeholder="Batch type (e.g. crypto_group)">
+            <input id="bulkProject" placeholder="Pitch project (e.g. M3)">
+            <button onclick="bulkAdd()">➕ Add All</button>
+            <div id="bulkResult" style="margin-top:8px;font-size:12px"></div>
+        </div>
+    </div>
+    <div class="grid">
+        <div class="card"><h3>📁 CSV Import</h3>
             <div class="file-upload" onclick="document.getElementById('csvFile').click()">📁 Upload CSV (phone,name,company,email)</div>
             <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="uploadCSV(this)">
-            <input id="batchProject" placeholder="Pitch project (optional)">
-            <input id="batchType" placeholder="Batch type (e.g. crypto_group)">
+            <input id="batchProject" placeholder="Pitch project"><input id="batchType" placeholder="Batch type">
         </div>
     </div>
     <div class="card"><h3>📋 All Contacts</h3>
-        <table><thead><tr><th>Phone</th><th>Name</th><th>Stage</th><th>Consent</th><th>Risk</th><th>Bot</th><th>Actions</th></tr></thead>
+        <input id="contactSearch" placeholder="🔍 Search contacts..." oninput="filterContacts(this.value)">
+        <table><thead><tr><th></th><th>Phone</th><th>Name</th><th>Stage</th><th>Consent</th><th>Bot</th><th>Actions</th></tr></thead>
         <tbody id="contactsTable"></tbody></table>
     </div>
+</div>
+
+<!-- Outreach -->
+<div class="panel" id="outreach-panel">
+    <div class="card"><h3>🚀 Outreach Campaign</h3>
+        <p style="font-size:13px;opacity:.7;margin-bottom:10px">Create campaigns with unique AI-generated opener variations for each contact</p>
+        <label style="font-size:12px;color:#25D366">Opener Template:</label>
+        <textarea id="openerTemplate" rows="2" placeholder="e.g. Ich hab gesehen, dass du in der M3 Community aktiv bist. Wollte fragen, ob du auch für andere Möglichkeiten offen bist."></textarea>
+        <div class="grid">
+            <div>
+                <label style="font-size:12px;color:#25D366">Phone Numbers (comma-separated):</label>
+                <textarea id="outreachPhones" rows="3" placeholder="4917612345678, 4915123456789, ..."></textarea>
+            </div>
+            <div>
+                <input id="outBatchType" placeholder="Batch type (e.g. crypto_m3)">
+                <input id="outProject" placeholder="Pitch project (e.g. M3)">
+                <select id="outLanguage"><option value="German">🇩🇪 German</option><option value="English">🇬🇧 English</option><option value="Spanish">🇪🇸 Spanish</option></select>
+            </div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:10px">
+            <button onclick="previewOutreach()">👁️ Preview Variations</button>
+            <button onclick="startOutreach()" style="background:#e67e22">🚀 Start Campaign</button>
+        </div>
+    </div>
+    <div class="card"><h3>👁️ Preview</h3><div id="outreachPreview"><p style="opacity:.5">Click "Preview Variations" to see AI-generated opener variations</p></div></div>
+    <div class="card"><h3>📊 Campaign Status</h3><div id="outreachStatus"><p style="opacity:.5">No active campaign</p></div></div>
 </div>
 
 <!-- Send -->
 <div class="panel" id="send-panel">
     <div class="card"><h3>📤 Send Message</h3>
         <input id="sendPhone" placeholder="Phone number">
-        <textarea id="sendMsg" rows="3" placeholder="Message (auto-split at 70 chars)..."></textarea>
+        <textarea id="sendMsg" rows="3" placeholder="Message..."></textarea>
         <div style="font-size:12px;opacity:.6;margin-bottom:8px">Chars: <span id="cc">0</span> | Parts: <span id="pc">1</span></div>
         <button onclick="sendMsg()">Send</button>
     </div>
@@ -184,9 +228,12 @@ pre{background:#0a0a1a;padding:12px;border-radius:6px;overflow-x:auto;font-size:
 </div>
 
 <!-- Contact Detail Modal -->
-<div id="modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);z-index:999;overflow-y:auto">
-    <div style="max-width:700px;margin:50px auto;background:#111;border-radius:10px;padding:20px;border:1px solid #222">
-        <div style="display:flex;justify-content:space-between"><h3 id="modalTitle" style="color:#25D366"></h3><button class="btn-sm btn-outline" onclick="closeModal()">✕</button></div>
+<div id="modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.85);z-index:999;overflow-y:auto">
+    <div style="max-width:800px;margin:30px auto;background:#111;border-radius:12px;padding:24px;border:1px solid #222">
+        <div style="display:flex;justify-content:space-between;align-items:center">
+            <h3 id="modalTitle" style="color:#25D366"></h3>
+            <button class="btn-sm btn-outline" onclick="closeModal()">✕ Close</button>
+        </div>
         <div id="modalContent" style="margin-top:15px"></div>
     </div>
 </div>
@@ -194,6 +241,7 @@ pre{background:#0a0a1a;padding:12px;border-radius:6px;overflow-x:auto;font-size:
 
 <script>
 const A='/api';
+let allContactsCache=[];
 
 // ── Status ──
 async function checkStatus(){
@@ -210,10 +258,10 @@ async function loadKPIs(){
         <div class="stat"><div class="num">${k.totalContacts}</div><div class="lbl">Contacts</div></div>
         <div class="stat"><div class="num">${k.messagesSent}</div><div class="lbl">Sent</div></div>
         <div class="stat"><div class="num">${k.messagesReceived}</div><div class="lbl">Received</div></div>
-        <div class="stat"><div class="num">${k.humanRequired}</div><div class="lbl">⚠️ Human Needed</div></div>
+        <div class="stat"><div class="num">${k.humanRequired}</div><div class="lbl">⚠️ Human</div></div>
         <div class="stat"><div class="num">${k.escalations}</div><div class="lbl">🚨 Escalations</div></div>
         <div class="stat"><div class="num">${k.blocked}</div><div class="lbl">🛡️ Blocked</div></div>
-        <div class="stat"><div class="num" style="color:${k.globalSendEnabled?'#25D366':'#e74c3c'}">${k.globalSendEnabled?'ON':'OFF'}</div><div class="lbl">Send Status</div></div>
+        <div class="stat"><div class="num" style="color:${k.globalSendEnabled?'#25D366':'#e74c3c'}">${k.globalSendEnabled?'ON':'OFF'}</div><div class="lbl">Send</div></div>
         <div class="stat"><div class="num" style="color:${k.autoReplyEnabled?'#25D366':'#f39c12'}">${k.autoReplyEnabled?'ON':'OFF'}</div><div class="lbl">Auto-Reply</div></div>`;
     }catch(e){}
 }
@@ -226,8 +274,7 @@ async function loadPipeline(target='pipelineOverview'){
     for(const[stage,list]of Object.entries(r.pipeline)){
         el.innerHTML+=`<div class="stage-card" onclick="showStageContacts('${stage}')">
             <div class="count" style="color:${colors[stage]||'#fff'}">${list.length}</div><div class="name">${stage}</div></div>`;
-    }
-    }catch(e){}
+    }}catch(e){}
 }
 
 async function showStageContacts(stage){
@@ -244,28 +291,62 @@ function contactRow(c){
     const consent={UNKNOWN:'badge-gray',SOFT_OPTIN_SENT:'badge-blue',OPTED_IN:'badge-green',DND:'badge-red'};
     const botStatus=c.bot_paused?'⏸️':'🤖';
     return `<tr>
+        <td><img class="pfp-sm" src="" data-phone="${c.phone}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2232%22 height=%2232%22><circle cx=%2216%22 cy=%2216%22 r=%2216%22 fill=%22%23333%22/><text x=%2216%22 y=%2221%22 text-anchor=%22middle%22 fill=%22%23888%22 font-size=%2214%22>👤</text></svg>'"></td>
         <td>${c.phone}</td><td>${c.name||'-'}</td>
         <td><span class="badge badge-blue">${c.pipeline_stage||'INTRO'}</span></td>
         <td><span class="badge ${consent[c.consent_status]||'badge-gray'}">${c.consent_status||'?'}</span></td>
-        <td>${c.risk_score||0}</td>
         <td>${botStatus}</td>
         <td>
-            <button class="btn-sm btn-outline" onclick="viewContact('${c.phone}')">View</button>
+            <button class="btn-sm btn-outline" onclick="viewContact('${c.phone}')">👁️ CRM</button>
             <button class="btn-sm btn-warning" onclick="takeover('${c.phone}')">👤</button>
         </td></tr>`;
 }
 
 async function loadContacts(){
     try{const r=await(await fetch(A+'/contacts')).json();
-    const tb=document.getElementById('contactsTable');tb.innerHTML='';
-    (r.contacts||[]).forEach(c=>{tb.innerHTML+=contactRow(c)});
+    allContactsCache=r.contacts||[];
+    renderContacts(allContactsCache);
     }catch(e){}
+}
+
+function renderContacts(list){
+    const tb=document.getElementById('contactsTable');tb.innerHTML='';
+    list.forEach(c=>{tb.innerHTML+=contactRow(c)});
+    // Load profile pics
+    setTimeout(()=>loadProfilePics(),100);
+}
+
+function filterContacts(q){
+    if(!q){renderContacts(allContactsCache);return}
+    q=q.toLowerCase();
+    renderContacts(allContactsCache.filter(c=>(c.phone||'').includes(q)||(c.name||'').toLowerCase().includes(q)||(c.company||'').toLowerCase().includes(q)));
+}
+
+async function loadProfilePics(){
+    const imgs=document.querySelectorAll('.pfp-sm[data-phone]');
+    imgs.forEach(async img=>{
+        const phone=img.dataset.phone;
+        try{
+            const r=await fetch(A+'/contacts/'+phone+'/pfp').then(r=>r.json());
+            if(r.pfp)img.src=r.pfp;
+        }catch(e){}
+    });
 }
 
 async function addContact(){
     await fetch(A+'/contacts',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({phone:document.getElementById('cPhone').value,name:document.getElementById('cName').value,company:document.getElementById('cCompany').value})});
+    document.getElementById('cPhone').value='';document.getElementById('cName').value='';document.getElementById('cCompany').value='';
     loadContacts();loadKPIs();
+}
+
+async function bulkAdd(){
+    const phones=document.getElementById('bulkPhones').value;
+    if(!phones.trim())return alert('Enter phone numbers');
+    const r=await(await fetch(A+'/contacts/bulk-add',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({phones,batch_type:document.getElementById('bulkBatchType').value,pitch_project:document.getElementById('bulkProject').value})})).json();
+    document.getElementById('bulkResult').innerHTML=r.success?`<span style="color:#25D366">✅ ${r.message}</span>`:`<span style="color:#e74c3c">❌ ${r.error}</span>`;
+    if(r.success){document.getElementById('bulkPhones').value='';loadContacts();loadKPIs();}
 }
 
 async function uploadCSV(input){
@@ -277,38 +358,72 @@ async function uploadCSV(input){
     alert(r.message);loadContacts();loadKPIs();
 }
 
-// ── View Contact (modal with CCB) ──
+// ── View Contact CRM (modal) ──
 async function viewContact(phone){
-    const[cRes,convRes,evRes]=await Promise.all([
+    const[cRes,convRes,evRes,pfpRes]=await Promise.all([
         fetch(A+'/contacts/'+phone+'/ccb').then(r=>r.json()),
         fetch(A+'/conversations/'+phone).then(r=>r.json()),
-        fetch(A+'/events/'+phone).then(r=>r.json())
+        fetch(A+'/events/'+phone).then(r=>r.json()),
+        fetch(A+'/contacts/'+phone+'/pfp').then(r=>r.json()).catch(()=>({pfp:null}))
     ]);
     const c=cRes.contact||{};const ccb=cRes.ccb;
-    let html=`<div class="grid"><div>
-        <p><strong>Phone:</strong> ${c.phone}</p><p><strong>Name:</strong> ${c.name||'-'}</p>
-        <p><strong>Stage:</strong> <span class="badge badge-blue">${c.pipeline_stage}</span></p>
-        <p><strong>Consent:</strong> ${c.consent_status}</p><p><strong>Risk:</strong> ${c.risk_score||0}</p>
-        <p><strong>Bot:</strong> ${c.bot_paused?'⏸️ Paused':'🤖 Active'}</p>
-        <div style="margin-top:10px">
-            <button class="btn-sm" onclick="takeover('${phone}')">👤 Human Takeover</button>
-            <button class="btn-sm" onclick="resumeBot('${phone}')">🤖 Resume Bot</button>
-            <button class="btn-sm btn-danger" onclick="setDND('${phone}')">🚫 DND</button>
-        </div></div>
-        <div><h4 style="color:#25D366;margin-bottom:8px">📊 CCB (Conclusion)</h4>
-        ${ccb?`<pre>${JSON.stringify(ccb,null,2)}</pre>`:'<p style="opacity:.5">No CCB yet</p>'}</div></div>
-        <div style="margin-top:15px"><h4 style="color:#25D366;margin-bottom:8px">💬 Conversations</h4>`;
-    (convRes.conversations||[]).slice(0,20).forEach(m=>{
-        html+=`<div class="msg ${m.direction==='incoming'?'in':'out'}">${m.message}<br><small>${m.created_at}</small></div>`;
+    const pfp=pfpRes.pfp||"data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='60' height='60'><circle cx='30' cy='30' r='30' fill='%23333'/><text x='30' y='38' text-anchor='middle' fill='%23888' font-size='24'>👤</text></svg>";
+    
+    let html=`<div class="contact-header">
+        <img class="pfp" src="${pfp}" onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%2260%22 height=%2260%22><circle cx=%2230%22 cy=%2230%22 r=%2230%22 fill=%22%23333%22/></svg>'">
+        <div>
+            <h2 style="color:#fff;margin-bottom:4px">${c.name||'Unknown'}</h2>
+            <p style="opacity:.7;font-size:14px">📱 +${c.phone} ${c.company?'• 🏢 '+c.company:''}</p>
+            <div style="margin-top:6px">
+                <span class="badge badge-blue">${c.pipeline_stage||'INTRO'}</span>
+                <span class="badge ${c.consent_status==='DND'?'badge-red':c.consent_status==='OPTED_IN'?'badge-green':'badge-gray'}">${c.consent_status||'UNKNOWN'}</span>
+                <span class="badge ${c.bot_paused?'badge-orange':'badge-green'}">${c.bot_paused?'⏸️ Bot Paused':'🤖 Bot Active'}</span>
+            </div>
+        </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:15px;flex-wrap:wrap">
+        <button class="btn-sm" onclick="takeover('${phone}');closeModal()">👤 Human Takeover</button>
+        <button class="btn-sm" onclick="resumeBot('${phone}');closeModal()">🤖 Resume Bot</button>
+        <button class="btn-sm btn-danger" onclick="setDND('${phone}');closeModal()">🚫 DND</button>
+    </div>`;
+
+    // Chat section with inline messaging
+    html+=`<div class="card"><h3>💬 Conversation</h3><div class="chat-box" id="chatBox">`;
+    const convs=(convRes.conversations||[]).slice(0,30);
+    if(convs.length===0)html+='<p style="opacity:.5;text-align:center;padding:20px">No messages yet</p>';
+    convs.forEach(m=>{
+        const time=new Date(m.created_at).toLocaleString('de-DE',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+        html+=`<div class="msg ${m.direction==='incoming'?'in':'out'}">${m.message}<br><small>${time} • ${m.direction}</small></div>`;
     });
-    html+=`</div><div style="margin-top:15px"><h4 style="color:#25D366;margin-bottom:8px">📋 Events</h4>`;
+    html+=`</div>
+        <div class="chat-input">
+            <input id="modalMsg" placeholder="Type a message..." onkeydown="if(event.key==='Enter')sendFromModal('${phone}')">
+            <button onclick="sendFromModal('${phone}')">📤 Send</button>
+        </div></div>`;
+
+    // CCB
+    html+=`<div class="card"><h3>📊 CCB (Customer Conclusion Brief)</h3>
+        ${ccb?`<pre>${JSON.stringify(ccb,null,2)}</pre>`:'<p style="opacity:.5">No CCB generated yet</p>'}</div>`;
+
+    // Events
+    html+=`<div class="card"><h3>📋 Recent Events</h3><div style="max-height:200px;overflow-y:auto">`;
     (evRes.events||[]).slice(0,15).forEach(e=>{
         html+=`<div class="event"><span class="type">${e.event_type}</span><span style="opacity:.5">${e.created_at}</span></div>`;
     });
-    html+='</div>';
+    html+='</div></div>';
+
     document.getElementById('modalTitle').textContent=`${c.name||c.phone}`;
     document.getElementById('modalContent').innerHTML=html;
     document.getElementById('modal').style.display='block';
+    // Scroll chat to bottom
+    const cb=document.getElementById('chatBox');if(cb)cb.scrollTop=cb.scrollHeight;
+}
+
+async function sendFromModal(phone){
+    const input=document.getElementById('modalMsg');
+    const msg=input.value.trim();if(!msg)return;
+    const r=await(await fetch(A+'/messages/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone,message:msg})})).json();
+    if(r.success){input.value='';viewContact(phone);}else{alert('Error: '+r.error);}
 }
 function closeModal(){document.getElementById('modal').style.display='none'}
 
@@ -326,6 +441,39 @@ async function loadHumanRequired(){
             <span>${c.name||c.phone} (risk: ${c.risk_score})</span>
             <button class="btn-sm" onclick="viewContact('${c.phone}')">View</button></div>`;
     });}catch(e){}
+}
+
+// ── Outreach ──
+async function previewOutreach(){
+    const opener=document.getElementById('openerTemplate').value;
+    if(!opener)return alert('Enter an opener template');
+    const el=document.getElementById('outreachPreview');
+    el.innerHTML='<p style="opacity:.7">⏳ Generating variations...</p>';
+    const phones=document.getElementById('outreachPhones').value;
+    const count=phones?phones.split(',').filter(p=>p.trim()).length:5;
+    const lang=document.getElementById('outLanguage').value;
+    const r=await(await fetch(A+'/outreach/preview',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({opener,count:Math.max(count,3),language:lang})})).json();
+    if(r.success){
+        el.innerHTML='';
+        r.variations.forEach((v,i)=>{el.innerHTML+=`<div class="variation"><strong>#${i+1}:</strong> ${v}</div>`});
+    }else{el.innerHTML=`<p style="color:#e74c3c">Error: ${r.error}</p>`}
+}
+
+async function startOutreach(){
+    const opener=document.getElementById('openerTemplate').value;
+    const phonesRaw=document.getElementById('outreachPhones').value;
+    if(!opener||!phonesRaw)return alert('Enter opener + phone numbers');
+    if(!confirm(`Start outreach campaign?\nThis will send messages with 30-90s delays between each.`))return;
+    const phones=phonesRaw.split(',').map(p=>p.trim().replace(/\D/g,'')).filter(p=>p.length>5);
+    const el=document.getElementById('outreachStatus');
+    el.innerHTML=`<p style="color:#f39c12">🚀 Campaign starting for ${phones.length} contacts...</p>`;
+    const r=await(await fetch(A+'/outreach/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
+        phones,opener,batch_type:document.getElementById('outBatchType').value,pitch_project:document.getElementById('outProject').value,language:document.getElementById('outLanguage').value
+    })})).json();
+    if(r.success){
+        el.innerHTML=`<p style="color:#25D366">✅ ${r.message}</p><p style="opacity:.7">Batch: ${r.batchId}</p>`;
+        r.preview.forEach((p,i)=>{el.innerHTML+=`<div class="variation"><strong>${p.phone}:</strong> ${p.message}</div>`});
+    }else{el.innerHTML=`<p style="color:#e74c3c">❌ ${r.error}</p>`}
 }
 
 // ── Events ──
@@ -370,7 +518,7 @@ async function loadKB(){
 async function addKB(){
     await fetch(A+'/knowledge',{method:'POST',headers:{'Content-Type':'application/json'},
         body:JSON.stringify({category:document.getElementById('kbCat').value,question:document.getElementById('kbQ').value,answer:document.getElementById('kbA').value,keywords:document.getElementById('kbKW').value})});
-    loadKB();loadKPIs();
+    loadKB();
 }
 async function delKB(id){await fetch(A+'/knowledge/'+id,{method:'DELETE'});loadKB();}
 
@@ -408,7 +556,7 @@ function show(name){
     event.target.classList.add('active');
     document.getElementById(name+'-panel').classList.add('active');
     if(name==='contacts')loadContacts();
-    if(name==='pipeline'){loadPipeline('pipelineDetailed');}
+    if(name==='pipeline')loadPipeline('pipelineDetailed');
     if(name==='kb')loadKB();
     if(name==='events')loadEvents();
     if(name==='settings')loadSettings();

@@ -449,6 +449,37 @@ app.post('/api/outreach/start', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
+// ============== PROFILE PICTURE ==============
+
+app.get('/api/contacts/:phone/pfp', async (req, res) => {
+    try {
+        if (!whatsappClient || !isConnected) return res.json({ success: false, pfp: null });
+        const chatId = `${req.params.phone}@c.us`;
+        const url = await whatsappClient.getProfilePicUrl(chatId).catch(() => null);
+        res.json({ success: true, pfp: url || null });
+    } catch (e) { res.json({ success: false, pfp: null }); }
+});
+
+// ============== BULK ADD (comma-separated) ==============
+
+app.post('/api/contacts/bulk-add', (req, res) => {
+    try {
+        const { phones, batch_type, pitch_project } = req.body;
+        if (!phones) return res.status(400).json({ success: false, error: 'No phones provided' });
+        const phoneList = phones.split(',').map(p => p.trim().replace(/\D/g, '')).filter(p => p.length > 5);
+        let added = 0;
+        phoneList.forEach(phone => {
+            contacts.add(phone, null, null, null, null, {
+                batch_type: batch_type || 'manual',
+                pitch_project: pitch_project || null,
+                consent_status: 'UNKNOWN'
+            });
+            added++;
+        });
+        res.json({ success: true, message: `Added ${added} contacts`, total: added, phones: phoneList });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
 // ============== KPI STATS ==============
 
 app.get('/api/kpis', (req, res) => {
