@@ -14,6 +14,7 @@ const path = require('path');
 const { initializeDatabase, contacts, conversations, knowledge, queue, templates } = require('./database/db');
 const { sendHumanLike, splitMessage, sleep, MAX_MESSAGE_LENGTH } = require('./humanizer');
 const ai = require('./ai');
+const { startServer, setWhatsAppClient } = require('./web/server');
 
 // Configuration
 const config = {
@@ -508,9 +509,20 @@ async function start() {
     // Initialize AI
     ai.initializeAI();
 
+    // Start web dashboard
+    startServer();
+    console.log(chalk.green('🌐 Dashboard available at: http://localhost:3000'));
+
     // Initialize WhatsApp client
     console.log(chalk.yellow('\n🔌 Connecting to WhatsApp...'));
     initializeClient();
+    
+    // Pass client to web server after initialization
+    setTimeout(() => {
+        if (client) {
+            setWhatsAppClient(client);
+        }
+    }, 2000);
 }
 
 // Handle process termination

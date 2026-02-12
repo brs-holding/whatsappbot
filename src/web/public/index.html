@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WhatsApp Messager Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #1a1a2e;
+            color: #eee;
+            min-height: 100vh;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        header {
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        header h1 {
+            color: #25D366;
+            font-size: 24px;
+        }
+        .status {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .status-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #ff4444;
+        }
+        .status-dot.connected {
+            background: #25D366;
+        }
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .tab {
+            padding: 12px 24px;
+            background: #16213e;
+            border: none;
+            color: #eee;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+        .tab:hover, .tab.active {
+            background: #25D366;
+            color: #000;
+        }
+        .panel {
+            display: none;
+            background: #16213e;
+            padding: 20px;
+            border-radius: 10px;
+        }
+        .panel.active {
+            display: block;
+        }
+        .card {
+            background: #0f3460;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .card h3 {
+            margin-bottom: 15px;
+            color: #25D366;
+        }
+        input, textarea, select {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            background: #1a1a2e;
+            color: #eee;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        button {
+            padding: 12px 24px;
+            background: #25D366;
+            border: none;
+            border-radius: 6px;
+            color: #000;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+        button:hover {
+            background: #128C7E;
+            color: #fff;
+        }
+        button.secondary {
+            background: #0f3460;
+            color: #eee;
+        }
+        button.secondary:hover {
+            background: #16213e;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #0f3460;
+        }
+        th {
+            color: #25D366;
+        }
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+        .badge.new { background: #3498db; }
+        .badge.contacted { background: #25D366; color: #000; }
+        .badge.responded { background: #f39c12; }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+        .message-list {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .message {
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 8px;
+            background: #1a1a2e;
+        }
+        .message.incoming {
+            background: #0f3460;
+        }
+        .message.outgoing {
+            background: #128C7E;
+            margin-left: 20px;
+        }
+        .message small {
+            opacity: 0.7;
+            font-size: 11px;
+        }
+        .file-upload {
+            border: 2px dashed #25D366;
+            padding: 40px;
+            text-align: center;
+            border-radius: 10px;
+            cursor: pointer;
+            margin-bottom: 15px;
+        }
+        .file-upload:hover {
+            background: rgba(37, 211, 102, 0.1);
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        .stat-card {
+            background: #0f3460;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+        }
+        .stat-card .number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #25D366;
+        }
+        .stat-card .label {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+        .qr-section {
+            text-align: center;
+            padding: 40px;
+        }
+        .qr-section img {
+            max-width: 300px;
+            margin: 20px auto;
+        }
+        .hidden { display: none; }
+        @media (max-width: 768px) {
+            .stats { grid-template-columns: repeat(2, 1fr); }
+            .grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📱 WhatsApp Messager</h1>
+            <div class="status">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">Checking...</span>
+            </div>
+        </header>
+
+        <div class="stats">
+            <div class="stat-card">
+                <div class="number" id="statContacts">0</div>
+                <div class="label">Contacts</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="statMessages">0</div>
+                <div class="label">Messages Sent</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="statKnowledge">0</div>
+                <div class="label">Knowledge Items</div>
+            </div>
+            <div class="stat-card">
+                <div class="number" id="statTemplates">0</div>
+                <div class="label">Templates</div>
+            </div>
+        </div>
+
+        <div class="tabs">
+            <button class="tab active" onclick="showPanel('connect')">🔗 Connect</button>
+            <button class="tab" onclick="showPanel('contacts')">📇 Contacts</button>
+            <button class="tab" onclick="showPanel('send')">📤 Send Message</button>
+            <button class="tab" onclick="showPanel('knowledge')">📚 Knowledge Base</button>
+            <button class="tab" onclick="showPanel('templates')">📝 Templates</button>
+            <button class="tab" onclick="showPanel('conversations')">💬 Conversations</button>
+        </div>
+
+        <!-- Connect Panel -->
+        <div class="panel active" id="connect-panel">
+            <div class="card">
+                <h3>🔗 Connect WhatsApp</h3>
+                <div class="qr-section">
+                    <p>Run the app with <code>npm start</code> and scan the QR code in the terminal.</p>
+                    <p style="margin-top: 20px;">Or check the Chrome window that opened.</p>
+                    <div id="qrCode"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contacts Panel -->
+        <div class="panel" id="contacts-panel">
+            <div class="grid">
+                <div class="card">
+                    <h3>➕ Add Contact</h3>
+                    <input type="text" id="contactPhone" placeholder="Phone (with country code, no +)">
+                    <input type="text" id="contactName" placeholder="Name">
+                    <input type="text" id="contactCompany" placeholder="Company">
+                    <input type="email" id="contactEmail" placeholder="Email">
+                    <textarea id="contactNotes" placeholder="Notes" rows="2"></textarea>
+                    <button onclick="addContact()">Add Contact</button>
+                </div>
+                <div class="card">
+                    <h3>📁 Upload CSV</h3>
+                    <div class="file-upload" onclick="document.getElementById('csvFile').click()">
+                        <p>📁 Click to upload CSV file</p>
+                        <p style="font-size: 12px; opacity: 0.7;">Columns: phone, name, company, email</p>
+                    </div>
+                    <input type="file" id="csvFile" accept=".csv" style="display: none;" onchange="uploadContacts(this)">
+                </div>
+            </div>
+            <div class="card">
+                <h3>📋 All Contacts</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Phone</th>
+                            <th>Name</th>
+                            <th>Company</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="contactsTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Send Message Panel -->
+        <div class="panel" id="send-panel">
+            <div class="card">
+                <h3>📤 Send Message</h3>
+                <input type="text" id="sendPhone" placeholder="Phone number (with country code)">
+                <textarea id="sendMessage" placeholder="Type your message here... (Will be split into max 70 char chunks)" rows="4"></textarea>
+                <p style="font-size: 12px; opacity: 0.7; margin-bottom: 10px;">
+                    Characters: <span id="charCount">0</span> | Parts: <span id="partCount">0</span>
+                </p>
+                <button onclick="sendMessage()">Send Message</button>
+            </div>
+        </div>
+
+        <!-- Knowledge Base Panel -->
+        <div class="panel" id="knowledge-panel">
+            <div class="card">
+                <h3>➕ Add Knowledge</h3>
+                <select id="knowledgeCategory">
+                    <option value="general">General</option>
+                    <option value="pricing">Pricing</option>
+                    <option value="services">Services</option>
+                    <option value="faq">FAQ</option>
+                    <option value="company">Company Info</option>
+                </select>
+                <input type="text" id="knowledgeQuestion" placeholder="Question (optional)">
+                <textarea id="knowledgeAnswer" placeholder="Answer / Information" rows="3"></textarea>
+                <input type="text" id="knowledgeKeywords" placeholder="Keywords (comma separated)">
+                <button onclick="addKnowledge()">Add Knowledge</button>
+            </div>
+            <div class="card">
+                <h3>📚 Knowledge Base</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Category</th>
+                            <th>Question</th>
+                            <th>Answer</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="knowledgeTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Templates Panel -->
+        <div class="panel" id="templates-panel">
+            <div class="card">
+                <h3>➕ Create Template</h3>
+                <input type="text" id="templateName" placeholder="Template name">
+                <textarea id="templateContent" placeholder="Template content... Use {name} and {company} as variables" rows="3"></textarea>
+                <button onclick="addTemplate()">Create Template</button>
+            </div>
+            <div class="card">
+                <h3>📝 Templates</h3>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Content</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="templatesTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Conversations Panel -->
+        <div class="panel" id="conversations-panel">
+            <div class="card">
+                <h3>💬 View Conversations</h3>
+                <input type="text" id="convPhone" placeholder="Phone number to view conversations">
+                <button onclick="loadConversations()">Load Conversations</button>
+            </div>
+            <div class="card">
+                <h3>Messages</h3>
+                <div class="message-list" id="messageList"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API = '/api';
+
+        // Check status
+        async function checkStatus() {
+            try {
+                const res = await fetch(`${API}/status`);
+                const data = await res.json();
+                const dot = document.getElementById('statusDot');
+                const text = document.getElementById('statusText');
+                
+                if (data.connected) {
+                    dot.classList.add('connected');
+                    text.textContent = 'Connected';
+                } else {
+                    dot.classList.remove('connected');
+                    text.textContent = 'Disconnected';
+                }
+            } catch (e) {
+                document.getElementById('statusText').textContent = 'Server Offline';
+            }
+        }
+
+        // Load stats
+        async function loadStats() {
+            try {
+                const [contacts, knowledge, templates] = await Promise.all([
+                    fetch(`${API}/contacts`).then(r => r.json()),
+                    fetch(`${API}/knowledge`).then(r => r.json()),
+                    fetch(`${API}/templates`).then(r => r.json())
+                ]);
+                
+                document.getElementById('statContacts').textContent = contacts.contacts?.length || 0;
+                document.getElementById('statKnowledge').textContent = knowledge.knowledge?.length || 0;
+                document.getElementById('statTemplates').textContent = templates.templates?.length || 0;
+            } catch (e) {
+                console.error('Error loading stats:', e);
+            }
+        }
+
+        // Show panel
+        function showPanel(name) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(`${name}-panel`).classList.add('active');
+            
+            if (name === 'contacts') loadContacts();
+            if (name === 'knowledge') loadKnowledge();
+            if (name === 'templates') loadTemplates();
+        }
+
+        // Load contacts
+        async function loadContacts() {
+            try {
+                const res = await fetch(`${API}/contacts`);
+                const data = await res.json();
+                const tbody = document.getElementById('contactsTable');
+                tbody.innerHTML = '';
+                
+                data.contacts?.forEach(c => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${c.phone}</td>
+                            <td>${c.name || '-'}</td>
+                            <td>${c.company || '-'}</td>
+                            <td><span class="badge ${c.status}">${c.status}</span></td>
+                            <td>
+                                <button class="secondary" onclick="fillPhone('${c.phone}')">Message</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (e) {
+                console.error('Error loading contacts:', e);
+            }
+        }
+
+        // Add contact
+        async function addContact() {
+            const phone = document.getElementById('contactPhone').value;
+            const name = document.getElementById('contactName').value;
+            const company = document.getElementById('contactCompany').value;
+            const email = document.getElementById('contactEmail').value;
+            const notes = document.getElementById('contactNotes').value;
+
+            try {
+                await fetch(`${API}/contacts`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone, name, company, email, notes })
+                });
+                loadContacts();
+                loadStats();
+                // Clear form
+                ['contactPhone', 'contactName', 'contactCompany', 'contactEmail', 'contactNotes'].forEach(id => {
+                    document.getElementById(id).value = '';
+                });
+            } catch (e) {
+                alert('Error adding contact');
+            }
+        }
+
+        // Upload contacts
+        async function uploadContacts(input) {
+            if (!input.files[0]) return;
+            
+            const formData = new FormData();
+            formData.append('file', input.files[0]);
+            
+            try {
+                const res = await fetch(`${API}/contacts/upload`, {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                alert(data.message);
+                loadContacts();
+                loadStats();
+            } catch (e) {
+                alert('Error uploading contacts');
+            }
+        }
+
+        // Fill phone for messaging
+        function fillPhone(phone) {
+            document.getElementById('sendPhone').value = phone;
+            showPanel('send');
+        }
+
+        // Send message
+        async function sendMessage() {
+            const phone = document.getElementById('sendPhone').value;
+            const message = document.getElementById('sendMessage').value;
+
+            if (!phone || !message) {
+                alert('Please enter phone and message');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API}/messages/send`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone, message })
+                });
+                const data = await res.json();
+                
+                if (data.success) {
+                    alert('Message sent!');
+                    document.getElementById('sendMessage').value = '';
+                    updateCharCount();
+                } else {
+                    alert('Error: ' + data.error);
+                }
+            } catch (e) {
+                alert('Error sending message. Is WhatsApp connected?');
+            }
+        }
+
+        // Character count
+        document.getElementById('sendMessage')?.addEventListener('input', updateCharCount);
+        
+        function updateCharCount() {
+            const msg = document.getElementById('sendMessage').value;
+            const chars = msg.length;
+            const parts = Math.ceil(chars / 70);
+            document.getElementById('charCount').textContent = chars;
+            document.getElementById('partCount').textContent = parts || 1;
+        }
+
+        // Knowledge
+        async function loadKnowledge() {
+            try {
+                const res = await fetch(`${API}/knowledge`);
+                const data = await res.json();
+                const tbody = document.getElementById('knowledgeTable');
+                tbody.innerHTML = '';
+                
+                data.knowledge?.forEach(k => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${k.category}</td>
+                            <td>${k.question || '-'}</td>
+                            <td>${k.answer?.substring(0, 50)}...</td>
+                            <td>
+                                <button class="secondary" onclick="deleteKnowledge(${k.id})">Delete</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (e) {
+                console.error('Error loading knowledge:', e);
+            }
+        }
+
+        async function addKnowledge() {
+            const category = document.getElementById('knowledgeCategory').value;
+            const question = document.getElementById('knowledgeQuestion').value;
+            const answer = document.getElementById('knowledgeAnswer').value;
+            const keywords = document.getElementById('knowledgeKeywords').value;
+
+            try {
+                await fetch(`${API}/knowledge`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ category, question, answer, keywords })
+                });
+                loadKnowledge();
+                loadStats();
+            } catch (e) {
+                alert('Error adding knowledge');
+            }
+        }
+
+        async function deleteKnowledge(id) {
+            if (!confirm('Delete this item?')) return;
+            try {
+                await fetch(`${API}/knowledge/${id}`, { method: 'DELETE' });
+                loadKnowledge();
+                loadStats();
+            } catch (e) {
+                alert('Error deleting');
+            }
+        }
+
+        // Templates
+        async function loadTemplates() {
+            try {
+                const res = await fetch(`${API}/templates`);
+                const data = await res.json();
+                const tbody = document.getElementById('templatesTable');
+                tbody.innerHTML = '';
+                
+                data.templates?.forEach(t => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td>${t.name}</td>
+                            <td>${t.content}</td>
+                            <td>
+                                <button class="secondary" onclick="useTemplate('${t.content.replace(/'/g, "\\'")}')">Use</button>
+                            </td>
+                        </tr>
+                    `;
+                });
+            } catch (e) {
+                console.error('Error loading templates:', e);
+            }
+        }
+
+        async function addTemplate() {
+            const name = document.getElementById('templateName').value;
+            const content = document.getElementById('templateContent').value;
+
+            try {
+                await fetch(`${API}/templates`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, content })
+                });
+                loadTemplates();
+                loadStats();
+            } catch (e) {
+                alert('Error adding template');
+            }
+        }
+
+        function useTemplate(content) {
+            document.getElementById('sendMessage').value = content;
+            showPanel('send');
+            updateCharCount();
+        }
+
+        // Conversations
+        async function loadConversations() {
+            const phone = document.getElementById('convPhone').value;
+            if (!phone) return;
+
+            try {
+                const res = await fetch(`${API}/conversations/${phone}`);
+                const data = await res.json();
+                const list = document.getElementById('messageList');
+                list.innerHTML = '';
+                
+                data.conversations?.forEach(m => {
+                    const time = new Date(m.created_at).toLocaleString();
+                    list.innerHTML += `
+                        <div class="message ${m.direction}">
+                            <div>${m.message}</div>
+                            <small>${time}</small>
+                        </div>
+                    `;
+                });
+            } catch (e) {
+                alert('Error loading conversations');
+            }
+        }
+
+        // Initialize
+        checkStatus();
+        loadStats();
+        setInterval(checkStatus, 5000);
+    </script>
+</body>
+</html>
