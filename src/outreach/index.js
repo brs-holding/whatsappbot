@@ -36,7 +36,6 @@ REGELN:
 7. IMMER "du" verwenden, NIEMALS "Sie" — casual und locker
 8. KEIN Link, KEIN Pitch, nur die Frage ob Interesse
 9. Klingt wie ein Kumpel der eine SMS schreibt, nicht wie ein Verkäufer
-
 Antworte als JSON-Array: ["variation1", "variation2", ...]`
             }, {
                 role: 'user',
@@ -130,9 +129,9 @@ async function executeCampaign(whatsappClient, campaign) {
         }
 
         try {
-            // Staggered delay: 30-90 seconds between messages
+            // Staggered delay: 2-5 minutes between messages
             if (i > 0) {
-                const delay = Math.floor(Math.random() * 60000) + 30000;
+                const delay = Math.floor(Math.random() * 180000) + 120000;
                 console.log(`   ⏳ Waiting ${Math.round(delay/1000)}s...`);
                 await new Promise(r => setTimeout(r, delay));
             }

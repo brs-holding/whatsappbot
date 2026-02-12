@@ -63,14 +63,18 @@ function initializeClient() {
 
 // ═══════════════ MESSAGE HANDLER (production pipeline) ═══════════════
 async function handleIncomingMessage(message) {
-    // Skip groups, status, LID format, broadcasts
+    // Skip groups, status, broadcasts
     if (message.from.includes('@g.us') || message.isStatus) return;
-    if (message.from.includes('@lid') || message.from.includes('@broadcast')) return;
-    if (!message.from.includes('@c.us')) return;
+    if (message.from.includes('@broadcast')) return;
+    
+    // Accept both @c.us and @lid format
+    const isLid = message.from.includes('@lid');
+    const isCus = message.from.includes('@c.us');
+    if (!isLid && !isCus) return;
 
-    const phone = message.from.replace('@c.us', '');
+    const phone = message.from.replace('@c.us', '').replace('@lid', '');
     const text = (message.body || '').trim();
-    const chatId = `${phone}@c.us`;
+    const chatId = message.from; // Keep original format for reply
 
     // Skip empty messages (media without text, stickers, etc.)
     if (!text || text.length === 0) {
