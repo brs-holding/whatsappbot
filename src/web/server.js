@@ -449,6 +449,28 @@ app.post('/api/outreach/start', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
+// ============== FETCH WHATSAPP CHAT (live from WA) ==============
+
+app.get('/api/whatsapp-chat/:phone', async (req, res) => {
+    try {
+        if (!whatsappClient || !isConnected) return res.status(400).json({ success: false, error: 'WhatsApp not connected' });
+        const phone = req.params.phone;
+        const chatId = `${phone}@c.us`;
+        const chat = await whatsappClient.getChatById(chatId).catch(() => null);
+        if (!chat) return res.json({ success: false, error: 'Chat not found' });
+        const messages = await chat.fetchMessages({ limit: 20 });
+        const parsed = messages.map(m => ({
+            from: m.fromMe ? 'me' : phone,
+            body: m.body,
+            timestamp: m.timestamp,
+            time: new Date(m.timestamp * 1000).toISOString(),
+            fromMe: m.fromMe,
+            type: m.type
+        }));
+        res.json({ success: true, messages: parsed });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
 // ============== PROFILE PICTURE ==============
 
 app.get('/api/contacts/:phone/pfp', async (req, res) => {
