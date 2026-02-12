@@ -14,7 +14,7 @@ const path = require('path');
 const { initializeDatabase, contacts, conversations, knowledge, queue, templates } = require('./database/db');
 const { sendHumanLike, splitMessage, sleep, MAX_MESSAGE_LENGTH } = require('./humanizer');
 const ai = require('./ai');
-const { startServer, setWhatsAppClient } = require('./web/server');
+const { startServer, setWhatsAppClient, setQRCode } = require('./web/server');
 
 // Configuration
 const config = {
@@ -62,6 +62,9 @@ function initializeClient() {
 
     // QR Code event
     client.on('qr', (qr) => {
+        // Send QR to web dashboard
+        setQRCode(qr);
+        
         console.log('\n' + chalk.cyan('========================================'));
         console.log(chalk.yellow('Scan this QR code with your WhatsApp app:'));
         console.log(chalk.gray('(WhatsApp > Settings > Linked Devices > Link a Device)'));

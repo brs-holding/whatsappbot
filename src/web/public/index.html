@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+b <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -256,8 +256,8 @@
             <div class="card">
                 <h3>🔗 Connect WhatsApp</h3>
                 <div class="qr-section">
-                    <p>Run the app with <code>npm start</code> and scan the QR code in the terminal.</p>
-                    <p style="margin-top: 20px;">Or check the Chrome window that opened.</p>
+                    <p id="qrStatus">Loading QR code...</p>
+                    <img id="qrImage" style="display:none; max-width: 300px; margin: 20px auto;" />
                     <div id="qrCode"></div>
                 </div>
             </div>
@@ -682,10 +682,37 @@
             }
         }
 
+        // Load QR Code
+        async function loadQRCode() {
+            try {
+                const res = await fetch(`${API}/status`);
+                const data = await res.json();
+                const qrStatus = document.getElementById('qrStatus');
+                const qrImage = document.getElementById('qrImage');
+                
+                if (data.connected) {
+                    qrStatus.textContent = '✅ WhatsApp Connected!';
+                    qrImage.style.display = 'none';
+                } else if (data.qr) {
+                    qrStatus.textContent = '📱 Scan this QR code with WhatsApp:';
+                    // Generate QR code image using Google Charts API
+                    qrImage.src = `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${encodeURIComponent(data.qr)}&choe=UTF-8`;
+                    qrImage.style.display = 'block';
+                } else {
+                    qrStatus.textContent = '⏳ Waiting for QR code...';
+                    qrImage.style.display = 'none';
+                }
+            } catch (e) {
+                document.getElementById('qrStatus').textContent = '❌ Server offline - Run npm start';
+            }
+        }
+
         // Initialize
         checkStatus();
         loadStats();
+        loadQRCode();
         setInterval(checkStatus, 5000);
+        setInterval(loadQRCode, 3000);
     </script>
 </body>
 </html>

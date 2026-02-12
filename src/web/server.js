@@ -26,6 +26,7 @@ const upload = multer({ dest: 'uploads/' });
 // WhatsApp client reference
 let whatsappClient = null;
 let isConnected = false;
+let currentQR = null;
 
 /**
  * Set WhatsApp client reference
@@ -35,11 +36,19 @@ function setWhatsAppClient(client) {
     
     client.on('ready', () => {
         isConnected = true;
+        currentQR = null;
     });
     
     client.on('disconnected', () => {
         isConnected = false;
     });
+}
+
+/**
+ * Set QR code for display
+ */
+function setQRCode(qr) {
+    currentQR = qr;
 }
 
 // ============== API ROUTES ==============
@@ -48,7 +57,16 @@ function setWhatsAppClient(client) {
 app.get('/api/status', (req, res) => {
     res.json({
         connected: isConnected,
+        qr: currentQR,
         timestamp: new Date().toISOString()
+    });
+});
+
+// QR Code endpoint
+app.get('/api/qr', (req, res) => {
+    res.json({
+        qr: currentQR,
+        connected: isConnected
     });
 });
 
@@ -224,4 +242,4 @@ function startServer() {
     });
 }
 
-module.exports = { startServer, setWhatsAppClient, app };
+module.exports = { startServer, setWhatsAppClient, setQRCode, app };
