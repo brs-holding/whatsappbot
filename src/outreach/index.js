@@ -31,7 +31,7 @@ REGELN:
 2. Kurz halten — maximal 1-2 Sätze, unter 150 Zeichen
 3. Locker und freundlich, wie eine echte WhatsApp-Nachricht unter Kumpels
 4. KEINE Emojis oder nur minimal (max 1)
-5. Variiere: Anrede (Hey, Hi, Moin, Servus, etc.), Satzstruktur, Wortauswahl
+5. Variiere die Anrede mit LOKALEN Grüßen: Servus, Moin, Sali, Hoi, Moin Moin, Hey, Hi, Na, Grüß dich — Satzstruktur und Wortauswahl variieren
 6. Sprache: ${language}
 7. IMMER "du" verwenden, NIEMALS "Sie" — casual und locker
 8. KEIN Link, KEIN Pitch, nur die Frage ob Interesse
