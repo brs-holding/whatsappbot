@@ -685,21 +685,23 @@ b <!DOCTYPE html>
         // Load QR Code
         async function loadQRCode() {
             try {
-                const res = await fetch(`${API}/status`);
+                const res = await fetch(`${API}/qr`);
                 const data = await res.json();
                 const qrStatus = document.getElementById('qrStatus');
                 const qrImage = document.getElementById('qrImage');
                 
                 if (data.connected) {
                     qrStatus.textContent = '✅ WhatsApp Connected!';
+                    qrStatus.style.color = '#25D366';
                     qrImage.style.display = 'none';
-                } else if (data.qr) {
+                } else if (data.qrImage) {
                     qrStatus.textContent = '📱 Scan this QR code with WhatsApp:';
-                    // Generate QR code image using Google Charts API
-                    qrImage.src = `https://chart.googleapis.com/chart?chs=300x300&cht=qr&chl=${encodeURIComponent(data.qr)}&choe=UTF-8`;
+                    qrStatus.style.color = '#eee';
+                    qrImage.src = data.qrImage;
                     qrImage.style.display = 'block';
                 } else {
                     qrStatus.textContent = '⏳ Waiting for QR code...';
+                    qrStatus.style.color = '#f39c12';
                     qrImage.style.display = 'none';
                 }
             } catch (e) {

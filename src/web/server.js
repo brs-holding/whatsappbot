@@ -9,6 +9,7 @@ const cors = require('cors');
 const multer = require('multer');
 const csv = require('csv-parse/sync');
 
+const QRCode = require('qrcode');
 const { contacts, conversations, knowledge, templates, queue, initializeDatabase } = require('../database/db');
 const { splitMessage, sendHumanLike } = require('../humanizer');
 
@@ -62,12 +63,24 @@ app.get('/api/status', (req, res) => {
     });
 });
 
-// QR Code endpoint
-app.get('/api/qr', (req, res) => {
-    res.json({
-        qr: currentQR,
-        connected: isConnected
-    });
+// QR Code endpoint - returns data URL image
+app.get('/api/qr', async (req, res) => {
+    if (isConnected) {
+        return res.json({ connected: true, qrImage: null });
+    }
+    if (currentQR) {
+        try {
+            const qrImage = await QRCode.toDataURL(currentQR, {
+                width: 300,
+                margin: 2,
+                color: { dark: '#000000', light: '#ffffff' }
+            });
+            return res.json({ connected: false, qrImage: qrImage });
+        } catch (e) {
+            return res.json({ connected: false, qrImage: null, error: e.message });
+        }
+    }
+    res.json({ connected: false, qrImage: null });
 });
 
 // ============== CONTACTS ==============
