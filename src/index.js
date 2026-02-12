@@ -15,6 +15,7 @@ const ai = require('./ai');
 const { killSwitch, validator, consent, escalation } = require('./safety');
 const { initPipeline, processMessage, generateCCB } = require('./pipeline');
 const { followup, booking, fingerprint } = require('./followup');
+const { initOutreach } = require('./outreach');
 const { startServer, setWhatsAppClient, setQRCode } = require('./web/server');
 
 // Browser config
@@ -163,12 +164,11 @@ async function safeSend(chatId, phone, message, runId = null) {
     // Gate 3: Fingerprint check (anti-repetition)
     const fpCheck = fingerprint.isTooSimilar(message, phone);
     if (fpCheck.similar) {
-        console.log(chalk.yellow(`⚠️ Fingerprint: ${fpCheck.similarity}% similar to recent message — rewriting`));
+        console.log(chalk.yellow(`⚠️ Fingerprint: ${fpCheck.similarity}% similar — logged`));
         events.add(phone, 'FINGERPRINT_FLAGGED', { similarity: fpCheck.similarity });
-        // Don't block, just log for now
     }
 
-    // Gate 3: Send with human-like delay
+    // Gate 4: Send with human-like delay
     try {
         await sleep(Math.random() * 4000 + 1500);
         await client.sendMessage(chatId, message);
@@ -195,11 +195,13 @@ async function start() {
     await initializeDatabase();
     ai.initializeAI();
     initPipeline();
+    initOutreach();
 
     startServer();
     console.log(chalk.green('🌐 Dashboard: http://localhost:3000'));
     console.log(chalk.green('🛡️  Safety: Kill switch + Validator + Escalation'));
     console.log(chalk.green('📊 Pipeline: Intent → Stage → CCB'));
+    console.log(chalk.green('🚀 Outreach: Opener variations ready'));
 
     require('child_process').exec('start http://localhost:3000');
 

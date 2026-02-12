@@ -14,6 +14,7 @@ const { contacts, conversations, knowledge, templates, queue, events, settings, 
 const { splitMessage, sendHumanLike } = require('../humanizer');
 const { killSwitch } = require('../safety');
 const { followup, booking, fingerprint } = require('../followup');
+const { prepareCampaign, executeCampaign, generateOpenerVariations } = require('../outreach');
 
 const app = express();
 const PORT = 3000;
@@ -414,6 +415,37 @@ app.get('/api/queue', (req, res) => {
     try {
         const pending = queue.getPending();
         res.json({ success: true, queue: pending });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// ============== OUTREACH ==============
+
+// Preview opener variations (without sending)
+app.post('/api/outreach/preview', async (req, res) => {
+    try {
+        const { opener, count, language } = req.body;
+        if (!opener) return res.status(400).json({ success: false, error: 'Opener template required' });
+        const variations = await generateOpenerVariations(opener, count || 5, language || 'German');
+        res.json({ success: true, variations });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// Prepare + execute outreach campaign
+app.post('/api/outreach/start', async (req, res) => {
+    try {
+        const { phones, opener, batch_type, pitch_project, language } = req.body;
+        if (!phones?.length || !opener) return res.status(400).json({ success: false, error: 'phones[] and opener required' });
+        if (!whatsappClient || !isConnected) return res.status(400).json({ success: false, error: 'WhatsApp not connected' });
+
+        // Prepare campaign
+        const campaign = await prepareCampaign(phones, opener, { batch_type, pitch_project, language });
+        
+        // Return preview immediately, execute in background
+        res.json({ success: true, message: `Outreach started for ${campaign.total} contacts`, batchId: campaign.batchId, preview: campaign.contacts });
+
+        // Execute staggered sending in background
+        executeCampaign(whatsappClient, campaign).catch(e => console.error('Outreach error:', e));
+
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
