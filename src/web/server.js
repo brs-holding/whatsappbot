@@ -490,49 +490,51 @@ app.post('/api/save-contact', async (req, res) => {
                     return { success: false, error: 'saveContactAction not available' };
                 }
                 
-                // Get the contact and its WID
+                // Get the contact
                 const contact = window.Store.Contact.get(jid);
-                if (!contact) return { success: false, error: 'Contact not found in store' };
+                if (!contact) return { success: false, error: 'Contact not found' };
                 
-                const wid = contact.id;
-                
-                // Try saveContactBatchAction with various formats
-                const phoneNum = wid.user;
                 const attempts = [];
                 
-                const formats = [
-                    [{id: wid, phone: phoneNum, firstName, lastName: lastName || ''}],
-                    [{phone: phoneNum, firstName, lastName: lastName || ''}],
-                    [{id: contact, firstName, lastName: lastName || ''}],
-                    [{jid: wid._serialized, firstName, lastName: lastName || ''}],
-                ];
-                
-                for (let i = 0; i < formats.length; i++) {
+                // Create proper WID using WidFactory
+                let properWid = contact.id;
+                if (window.Store.WidFactory && window.Store.WidFactory.createWid) {
                     try {
-                        await utils.saveContactBatchAction(formats[i]);
-                        return { success: true, method: `saveContactBatchAction format ${i}` };
-                    } catch(e) {
-                        attempts.push(e.message);
-                    }
+                        properWid = window.Store.WidFactory.createWid(jid);
+                    } catch(e) { attempts.push('WidFactory: ' + e.message); }
                 }
                 
-                // Try saveContactAction with different formats
-                const actionFormats = [
-                    [contact, firstName, lastName || '', phoneNum],
-                    [wid._serialized, firstName, lastName || '', phoneNum],
-                    [phoneNum, firstName, lastName || ''],
-                ];
+                // Try saveContactAction - it likely takes (wid, firstName, lastName)
+                try {
+                    const r = await utils.saveContactAction(properWid, firstName, lastName || '');
+                    return { success: true, method: 'saveContactAction(properWid)', result: JSON.stringify(r) };
+                } catch(e) { attempts.push('action(wid,f,l): ' + e.message); }
                 
-                for (let i = 0; i < actionFormats.length; i++) {
-                    try {
-                        await utils.saveContactAction(...actionFormats[i]);
-                        return { success: true, method: `saveContactAction format ${i}` };
-                    } catch(e) {
-                        attempts.push(e.message);
-                    }
+                // Try as object: {wid, firstName, lastName}
+                try {
+                    const r = await utils.saveContactAction({wid: properWid, firstName, lastName: lastName || ''});
+                    return { success: true, method: 'saveContactAction({wid})' };
+                } catch(e) { attempts.push('action({wid}): ' + e.message); }
+                
+                // Try batch with proper wid
+                try {
+                    const r = await utils.saveContactBatchAction([{wid: properWid, firstName, lastName: lastName || ''}]);
+                    return { success: true, method: 'batch({wid})' };
+                } catch(e) { attempts.push('batch({wid}): ' + e.message); }
+                
+                // Try using contact.updateName directly
+                try {
+                    contact.updateName(firstName + ' ' + (lastName || ''));
+                    return { success: true, method: 'contact.updateName' };
+                } catch(e) { attempts.push('updateName: ' + e.message); }
+                
+                // Check WidFactory methods
+                let widFactoryMethods = [];
+                if (window.Store.WidFactory) {
+                    widFactoryMethods = Object.getOwnPropertyNames(window.Store.WidFactory).filter(k => typeof window.Store.WidFactory[k] === 'function');
                 }
                 
-                return { success: false, attempts: attempts.slice(0, 5) };
+                return { success: false, attempts, widFactoryMethods };
             } catch (e) {
                 return { success: false, error: e.message };
             }
