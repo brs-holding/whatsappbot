@@ -28,14 +28,17 @@ async function generateOpenerVariations(openerTemplate, count = 10, language = '
 
 REGELN:
 1. Jede Variation muss ANDERS klingen, aber die GLEICHE Bedeutung haben
-2. Kurz halten — maximal 2 Sätze, unter 200 Zeichen
-3. Locker und freundlich, wie eine echte WhatsApp-Nachricht unter Freunden
+2. Kurz halten — maximal 1-2 Sätze, unter 150 Zeichen
+3. Locker und freundlich, wie eine echte WhatsApp-Nachricht unter Kumpels
 4. KEINE Emojis oder nur minimal (max 1)
 5. Variiere: Anrede (Hey, Hi, Moin, Servus, etc.), Satzstruktur, Wortauswahl
 6. Sprache: ${language}
 7. IMMER "du" verwenden, NIEMALS "Sie" — casual und locker
 8. KEIN Link, KEIN Pitch, nur die Frage ob Interesse
 9. Klingt wie ein Kumpel der eine SMS schreibt, nicht wie ein Verkäufer
+10. NIEMALS "Aktivität", "aktiv", "engagiert", "unterwegs" verwenden — M3 ist ein Broadcast-Kanal wo keiner schreiben kann
+11. Stattdessen: "ich bin auch bei M3", "du bist ja auch bei M3 dabei", "ich kenn dich aus der M3 Gruppe"
+12. EINE zusammenhängende Nachricht, keine Fragmente
 Antworte als JSON-Array: ["variation1", "variation2", ...]`
             }, {
                 role: 'user',
