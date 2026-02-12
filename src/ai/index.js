@@ -50,23 +50,46 @@ function buildConversationContext(phone, maxMessages = 10) {
  * Build system prompt with knowledge base
  */
 function buildSystemPrompt(context = {}) {
-    const { contactName, companyName } = context;
+    const { contactName, companyName, stage, ccb, detectedLanguage } = context;
     
-    let systemPrompt = `You are a helpful, friendly WhatsApp assistant. You respond like a human would in casual text messages.
+    // Default to German, but adapt if client writes in another language
+    const lang = detectedLanguage || 'German';
+    
+    let systemPrompt = `Du bist ein freundlicher WhatsApp-Assistent. Du antwortest wie ein Mensch in lockeren Textnachrichten.
 
-IMPORTANT RULES:
-1. Keep responses SHORT - maximum 70 characters per message
-2. Be conversational and casual
-3. Don't use emojis excessively
-4. Don't be overly formal
-5. Respond naturally as if texting a friend`;
+WICHTIGE REGELN:
+1. Antworte KURZ — maximal 70 Zeichen pro Nachricht
+2. Sei gesprächig und locker
+3. Nicht zu viele Emojis
+4. Nicht zu formell
+5. Antworte natürlich, wie in einer echten Textnachricht
+6. STANDARDSPRACHE: Deutsch (${lang})
+7. SPRACHANPASSUNG: Wenn der Kontakt in einer anderen Sprache schreibt, antworte in DEREN Sprache
+8. Erkenne die Sprache des Kontakts aus seiner letzten Nachricht und antworte in derselben Sprache`;
 
     if (contactName) {
-        systemPrompt += `\n\nYou are talking to ${contactName}.`;
+        systemPrompt += `\n\nDu sprichst mit ${contactName}.`;
     }
 
     if (companyName) {
-        systemPrompt += `\nYou represent ${companyName}.`;
+        systemPrompt += `\nDu repräsentierst ${companyName}.`;
+    }
+
+    if (stage) {
+        const stageInstructions = {
+            'INTRO': 'Sei freundlich und stelle eine offene Frage.',
+            'QUALIFYING': 'Stelle qualifizierende Fragen (Budget, Zeitrahmen, Bedarf).',
+            'VALUE_DELIVERY': 'Teile relevante Informationen und Vorteile.',
+            'BOOKING': 'Biete zwei Terminoptionen an.',
+            'FOLLOW_UP': 'Kurze, wertvolle Nachfrage.',
+            'WON': 'Bestätige und sei hilfreich.',
+            'LOST': 'Respektiere die Entscheidung.'
+        };
+        systemPrompt += `\n\nAktuelle Phase: ${stage}. ${stageInstructions[stage] || ''}`;
+    }
+
+    if (ccb) {
+        systemPrompt += `\n\nKontext über diesen Kontakt: ${ccb}`;
     }
 
     return systemPrompt;
@@ -80,7 +103,7 @@ async function generateResponse(phone, incomingMessage, options = {}) {
         return null; // AI not available
     }
 
-    const { contactName, companyName, maxTokens = 150 } = options;
+    const { contactName, companyName, stage, ccb, maxTokens = 150 } = options;
 
     try {
         // Get relevant knowledge
@@ -89,8 +112,8 @@ async function generateResponse(phone, incomingMessage, options = {}) {
         // Build conversation history
         const conversationHistory = buildConversationContext(phone);
         
-        // Build system prompt
-        let systemPrompt = buildSystemPrompt({ contactName, companyName });
+        // Build system prompt with stage + CCB context
+        let systemPrompt = buildSystemPrompt({ contactName, companyName, stage, ccb });
         
         // Add knowledge base context if relevant
         if (relevantKnowledge.length > 0) {
