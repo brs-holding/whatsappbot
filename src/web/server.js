@@ -10,8 +10,9 @@ const multer = require('multer');
 const csv = require('csv-parse/sync');
 
 const QRCode = require('qrcode');
-const { contacts, conversations, knowledge, templates, queue, initializeDatabase } = require('../database/db');
+const { contacts, conversations, knowledge, templates, queue, events, settings, initializeDatabase } = require('../database/db');
 const { splitMessage, sendHumanLike } = require('../humanizer');
+const { killSwitch } = require('../safety');
 
 const app = express();
 const PORT = 3000;
@@ -245,6 +246,163 @@ app.post('/api/templates', (req, res) => {
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
+});
+
+// ============== PIPELINE ==============
+
+// Get pipeline stats (contacts by stage)
+app.get('/api/pipeline', (req, res) => {
+    try {
+        const stages = ['INTRO','QUALIFYING','VALUE_DELIVERY','BOOKING','FOLLOW_UP','WON','LOST','DND'];
+        const pipeline = {};
+        stages.forEach(s => { pipeline[s] = contacts.getByStage(s); });
+        res.json({ success: true, pipeline });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// Get CCB for a contact
+app.get('/api/contacts/:phone/ccb', (req, res) => {
+    try {
+        const ccb = contacts.getCCB(req.params.phone);
+        const contact = contacts.get(req.params.phone);
+        res.json({ success: true, ccb, contact });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// ============== EVENTS ==============
+
+app.get('/api/events', (req, res) => {
+    try {
+        const recent = events.getRecent(100);
+        res.json({ success: true, events: recent });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.get('/api/events/:phone', (req, res) => {
+    try {
+        const phoneEvents = events.getByPhone(req.params.phone, 50);
+        res.json({ success: true, events: phoneEvents });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// ============== SETTINGS / KILL SWITCH ==============
+
+app.get('/api/settings', (req, res) => {
+    try {
+        const all = settings.getAll();
+        res.json({ success: true, settings: all, globalSendEnabled: settings.isGlobalSendEnabled(), autoReplyEnabled: settings.isAutoReplyEnabled() });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.post('/api/settings', (req, res) => {
+    try {
+        const { key, value } = req.body;
+        settings.set(key, value);
+        res.json({ success: true });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.post('/api/kill-switch/stop', (req, res) => {
+    killSwitch.emergencyStop();
+    res.json({ success: true, message: 'EMERGENCY STOP activated' });
+});
+
+app.post('/api/kill-switch/resume', (req, res) => {
+    killSwitch.resume();
+    res.json({ success: true, message: 'Sending resumed' });
+});
+
+// ============== HUMAN TAKEOVER ==============
+
+app.post('/api/contacts/:phone/takeover', (req, res) => {
+    try {
+        contacts.pauseBot(req.params.phone);
+        contacts.setHumanRequired(req.params.phone, true);
+        res.json({ success: true, message: 'Bot paused — human takeover active' });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.post('/api/contacts/:phone/resume-bot', (req, res) => {
+    try {
+        contacts.resumeBot(req.params.phone);
+        contacts.setHumanRequired(req.params.phone, false);
+        res.json({ success: true, message: 'Bot resumed' });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.post('/api/contacts/:phone/dnd', (req, res) => {
+    try {
+        contacts.setDND(req.params.phone);
+        res.json({ success: true, message: 'Contact set to DND' });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// Get contacts needing human attention
+app.get('/api/human-required', (req, res) => {
+    try {
+        const list = contacts.getHumanRequired();
+        res.json({ success: true, contacts: list });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// ============== BATCH IMPORT ==============
+
+app.post('/api/contacts/batch-upload', upload.single('file'), (req, res) => {
+    try {
+        if (!req.file) return res.status(400).json({ success: false, error: 'No file' });
+        const { batch_id, batch_type, pitch_project } = req.body;
+
+        const fileContent = require('fs').readFileSync(req.file.path, 'utf-8');
+        const records = csv.parse(fileContent, { columns: true, skip_empty_lines: true });
+
+        let added = 0;
+        records.forEach(r => {
+            const phone = (r.phone || r.Phone || r.number || r.Number || '').replace(/\D/g, '');
+            if (phone) {
+                contacts.add(phone, r.name || r.Name || null, r.company || r.Company || null, r.email || r.Email || null, null, {
+                    batch_id: batch_id || `batch_${Date.now()}`,
+                    batch_type: batch_type || 'import',
+                    pitch_project: pitch_project || null,
+                    consent_status: 'UNKNOWN'
+                });
+                added++;
+            }
+        });
+        require('fs').unlinkSync(req.file.path);
+        res.json({ success: true, message: `Imported ${added} contacts`, total: added, batch_id });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// ============== KPI STATS ==============
+
+app.get('/api/kpis', (req, res) => {
+    try {
+        const allContacts = contacts.getAll();
+        const totalContacts = allContacts.length;
+        const byStage = {};
+        const byConsent = {};
+        allContacts.forEach(c => {
+            byStage[c.pipeline_stage] = (byStage[c.pipeline_stage] || 0) + 1;
+            byConsent[c.consent_status] = (byConsent[c.consent_status] || 0) + 1;
+        });
+        const humanRequired = contacts.getHumanRequired().length;
+        const recentEvents = events.getRecent(200);
+        const outbound = recentEvents.filter(e => e.event_type === 'OUTBOUND_MESSAGE').length;
+        const inbound = recentEvents.filter(e => e.event_type === 'INBOUND_MESSAGE').length;
+        const escalations = recentEvents.filter(e => e.event_type === 'ESCALATION_TRIGGERED').length;
+        const blocked = recentEvents.filter(e => e.event_type === 'SEND_BLOCKED' || e.event_type === 'VALIDATION_FAILED').length;
+
+        res.json({
+            success: true,
+            kpis: {
+                totalContacts, byStage, byConsent, humanRequired,
+                messagesSent: outbound, messagesReceived: inbound,
+                escalations, blocked,
+                globalSendEnabled: settings.isGlobalSendEnabled(),
+                autoReplyEnabled: settings.isAutoReplyEnabled()
+            }
+        });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
 // ============== START SERVER ==============
