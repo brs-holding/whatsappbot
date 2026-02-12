@@ -490,26 +490,29 @@ app.post('/api/save-contact', async (req, res) => {
                     return { success: false, error: 'saveContactAction not available' };
                 }
                 
-                // Try different parameter formats
+                // Get the contact and its WID
+                const contact = window.Store.Contact.get(jid);
+                if (!contact) return { success: false, error: 'Contact not found in store' };
+                
+                const wid = contact.id;
+                
+                // Try with WID object
                 try {
-                    await utils.saveContactAction(jid, firstName, lastName || '');
-                    return { success: true, method: 'saveContactAction(jid, first, last)' };
+                    await utils.saveContactAction(wid, firstName, lastName || '');
+                    return { success: true, method: 'saveContactAction(wid, first, last)' };
                 } catch(e1) {
+                    // Try with just contact id  
                     try {
-                        await utils.saveContactAction({ jid, firstName, lastName: lastName || '' });
-                        return { success: true, method: 'saveContactAction({jid, firstName, lastName})' };
+                        await utils.saveContactAction(contact.id._serialized, firstName, lastName || '');
+                        return { success: true, method: 'saveContactAction(serialized, first, last)' };
                     } catch(e2) {
+                        // Try batch action
                         try {
-                            // Try with contact object
-                            const contact = window.Store.Contact.get(jid);
-                            if (contact) {
-                                await utils.saveContactAction(contact, firstName, lastName || '');
-                                return { success: true, method: 'saveContactAction(contact, first, last)' };
-                            }
+                            await utils.saveContactBatchAction([{id: wid, firstName, lastName: lastName || ''}]);
+                            return { success: true, method: 'saveContactBatchAction' };
                         } catch(e3) {
-                            return { success: false, errors: [e1.message, e2.message, e3?.message] };
+                            return { success: false, errors: [e1.message, e2.message, e3.message], widType: typeof wid, widKeys: Object.keys(wid || {}).join(',') };
                         }
-                        return { success: false, errors: [e1.message, e2.message] };
                     }
                 }
             } catch (e) {
