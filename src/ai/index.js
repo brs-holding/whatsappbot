@@ -9,35 +9,22 @@ const OpenAI = require('openai');
 const { knowledge, conversations } = require('../database/db');
 const { splitMessage, MAX_MESSAGE_LENGTH } = require('../humanizer');
 
-// Initialize OpenAI client
 let openai = null;
 
 function initializeAI() {
     if (process.env.OPENAI_API_KEY) {
-        openai = new OpenAI({
-            apiKey: process.env.OPENAI_API_KEY
-        });
+        openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
         console.log('✅ OpenAI initialized');
     } else {
         console.log('⚠️ No OpenAI API key found. AI features disabled.');
     }
 }
 
-/**
- * Get relevant knowledge base entries for context
- */
 function getRelevantKnowledge(query) {
     const results = knowledge.search(query);
-    return results.map(r => ({
-        category: r.category,
-        question: r.question,
-        answer: r.answer
-    }));
+    return results.map(r => ({ category: r.category, question: r.question, answer: r.answer }));
 }
 
-/**
- * Build context from conversation history
- */
 function buildConversationContext(phone, maxMessages = 10) {
     const history = conversations.getRecent(phone, maxMessages);
     return history.map(msg => ({
@@ -46,32 +33,30 @@ function buildConversationContext(phone, maxMessages = 10) {
     }));
 }
 
-/**
- * Build system prompt with knowledge base
- */
 function buildSystemPrompt(context = {}) {
     const { contactName, companyName, stage, ccb, detectedLanguage } = context;
-    
-    // Default to German, but adapt if client writes in another language
     const lang = detectedLanguage || 'German';
     
-    let systemPrompt = `Du bist eine echte Person die auf WhatsApp schreibt. Du darfst NIEMALS sagen dass du ein Bot, Assistent oder KI bist. Du bist ein Mensch der für ein Blockchain-Projekt arbeitet. Du führst lockere, menschliche Gespräche um Termine zu buchen.
+    let systemPrompt = `Du bist eine echte Person die auf WhatsApp schreibt. Du darfst NIEMALS sagen dass du ein Bot, Assistent oder KI bist. Du bist ein Mensch der für ein Blockchain-Projekt arbeitet.
 
 IDENTITÄT:
 - Du bist ein MENSCH, kein Bot oder Assistent
 - Wenn jemand fragt wer du bist: "Ich arbeite im Bereich Blockchain und Vermögensschutz"
 - NIEMALS sagen: "Ich bin ein Assistent/Bot/KI/Vertriebsassistent"
+- NIEMALS sagen: "Ich stehe zur Verfügung" oder andere Bot-Phrasen
 - Verhalte dich wie ein normaler Mensch der auf WhatsApp schreibt
 
 DEIN ZIEL: Führe den Kontakt zu einem Buchungstermin: https://calendly.com/vermoegensschutz_beratung
 
 KOMMUNIKATIONSREGELN:
-1. Antworte KURZ — maximal 1-2 Sätze pro Nachricht
-2. Sei locker und freundlich, wie ein Freund der eine Empfehlung gibt
+1. Antworte in 1-3 kurzen Sätzen, ALLES IN EINER Nachricht
+2. Sei locker und freundlich, wie ein Kumpel der eine Empfehlung gibt
 3. Nicht zu viele Emojis (maximal 1 pro Nachricht)
 4. STANDARDSPRACHE: Deutsch (${lang})
 5. SPRACHANPASSUNG: Wenn der Kontakt in einer anderen Sprache schreibt, wechsle in DEREN Sprache
 6. Duze den Kontakt
+7. Schreibe EINE zusammenhängende Nachricht, KEINE einzelnen Sätze getrennt
+8. URLs IMMER komplett in eine Zeile — NIEMALS umbrechen oder trennen
 
 VERKAUFSREGELN:
 - Wir bauen eine L1 & L2 Blockchain mit Möglichkeiten für passives Einkommen
@@ -84,66 +69,45 @@ VERKAUFSREGELN:
 
 TERMINBUCHUNG:
 - Calendly-Link: https://calendly.com/vermoegensschutz_beratung
-- Sende den Link wenn Interesse da ist mit: "Hier kannst du dir direkt einen Termin buchen: https://calendly.com/vermoegensschutz_beratung"
-- Mache es einfach und unkompliziert`;
+- Sende den Link wenn Interesse da ist mit: "Buch dir hier einen Termin: https://calendly.com/vermoegensschutz_beratung"
+- Der Link muss IMMER komplett in einem Stück sein, nie getrennt`;
 
-    if (contactName) {
-        systemPrompt += `\n\nDu sprichst mit ${contactName}.`;
-    }
-
-    if (companyName) {
-        systemPrompt += `\nDu repräsentierst ${companyName}.`;
-    }
+    if (contactName) systemPrompt += `\n\nDu sprichst mit ${contactName}.`;
+    if (companyName) systemPrompt += `\nDu repräsentierst ${companyName}.`;
 
     if (stage) {
         const stageInstructions = {
             'INTRO': 'Opener wurde gesendet. Warte auf Antwort. Wenn sie antworten, sei freundlich und frage ob sie offen für neue Möglichkeiten sind.',
-            'QUALIFYING': 'Der Kontakt hat geantwortet. Kurz erklären: "Wir bauen eine L1 & L2 Blockchain mit passivem Einkommen." Dann direkt zum Termin leiten. NICHT zu viel erklären.',
-            'VALUE_DELIVERY': 'Interesse ist da! Jetzt den Calendly-Link senden: https://calendly.com/vermoegensschutz_beratung — Sage: "Am besten erkläre ich dir das persönlich. Buch dir hier einen Termin:"',
-            'BOOKING': 'Calendly-Link wurde gesendet. Frage ob er sich einen Termin gebucht hat. Wenn nicht, sanft nachfragen.',
-            'FOLLOW_UP': 'Kurze Nachfrage: "Hey, hast du dir schon einen Termin ansehen können?" Nicht aufdringlich sein.',
-            'WON': 'Termin wurde gebucht! Bestätige kurz und sei freundlich. "Top, freue mich auf das Gespräch!"',
-            'LOST': 'Kein Interesse. Respektiere die Entscheidung. "Kein Problem, alles Gute dir!"'
+            'QUALIFYING': 'Der Kontakt hat geantwortet. Kurz erklären: "Wir bauen eine L1 & L2 Blockchain mit passivem Einkommen." Dann direkt zum Termin leiten.',
+            'VALUE_DELIVERY': 'Interesse ist da! Jetzt den Calendly-Link senden: https://calendly.com/vermoegensschutz_beratung — Sage: "Am besten erkläre ich dir das persönlich. Buch dir hier einen Termin: https://calendly.com/vermoegensschutz_beratung"',
+            'BOOKING': 'Calendly-Link wurde gesendet. Frage ob er sich einen Termin gebucht hat.',
+            'FOLLOW_UP': 'Kurze Nachfrage: "Hey, hast du dir schon einen Termin ansehen können?"',
+            'WON': 'Termin gebucht! "Top, freue mich auf das Gespräch!"',
+            'LOST': 'Kein Interesse. "Kein Problem, alles Gute!"'
         };
         systemPrompt += `\n\nAktuelle Phase: ${stage}\nAnweisung: ${stageInstructions[stage] || ''}`;
     }
 
-    if (ccb) {
-        systemPrompt += `\n\nKontext über diesen Kontakt: ${ccb}`;
-    }
+    if (ccb) systemPrompt += `\n\nKontext über diesen Kontakt: ${ccb}`;
 
     return systemPrompt;
 }
 
-/**
- * Generate AI response based on context and knowledge base
- */
 async function generateResponse(phone, incomingMessage, options = {}) {
-    if (!openai) {
-        return null; // AI not available
-    }
+    if (!openai) return null;
 
     const { contactName, companyName, stage, ccb, maxTokens = 150 } = options;
 
     try {
-        // Get relevant knowledge
         const relevantKnowledge = getRelevantKnowledge(incomingMessage);
-        
-        // Build conversation history
         const conversationHistory = buildConversationContext(phone);
-        
-        // Build system prompt with stage + CCB context
         let systemPrompt = buildSystemPrompt({ contactName, companyName, stage, ccb });
         
-        // Add knowledge base context if relevant
         if (relevantKnowledge.length > 0) {
-            systemPrompt += '\n\nRelevant information:\n';
-            relevantKnowledge.forEach(k => {
-                systemPrompt += `- ${k.answer}\n`;
-            });
+            systemPrompt += '\n\nRelevante Infos:\n';
+            relevantKnowledge.forEach(k => { systemPrompt += `- ${k.answer}\n`; });
         }
 
-        // Build messages array
         const messages = [
             { role: 'system', content: systemPrompt },
             ...conversationHistory,
@@ -152,7 +116,7 @@ async function generateResponse(phone, incomingMessage, options = {}) {
 
         const completion = await openai.chat.completions.create({
             model: 'gpt-3.5-turbo',
-            messages: messages,
+            messages,
             max_tokens: maxTokens,
             temperature: 0.7,
             presence_penalty: 0.6,
@@ -160,8 +124,6 @@ async function generateResponse(phone, incomingMessage, options = {}) {
         });
 
         const response = completion.choices[0].message.content.trim();
-        
-        // Split into human-like messages
         return splitMessage(response);
     } catch (error) {
         console.error('AI Error:', error.message);
@@ -169,73 +131,40 @@ async function generateResponse(phone, incomingMessage, options = {}) {
     }
 }
 
-/**
- * Generate a personalized first message for outreach
- */
 async function generateFirstMessage(contact, purpose = 'outreach') {
-    if (!openai) {
-        return null;
-    }
-
+    if (!openai) return null;
     const { name, company, notes } = contact;
-
-    const systemPrompt = `You are writing a first message for professional outreach on WhatsApp.
-Keep it SHORT (max 70 chars), friendly, and personalized.
-Don't be salesy or pushy. Be genuine.`;
-
-    const userPrompt = `Write a short first message to ${name || 'a potential contact'}${company ? ` from ${company}` : ''}.
-${notes ? `Context: ${notes}` : ''}
-Purpose: ${purpose}`;
 
     try {
         const completion = await openai.chat.completions.create({
             model: 'gpt-3.5-turbo',
             messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: userPrompt }
+                { role: 'system', content: 'Write a short first message for WhatsApp outreach. Keep it SHORT, friendly, personalized. Max 70 chars.' },
+                { role: 'user', content: `Write to ${name || 'a contact'}${company ? ` from ${company}` : ''}. Purpose: ${purpose}` }
             ],
             max_tokens: 100,
             temperature: 0.8
         });
-
-        const response = completion.choices[0].message.content.trim();
-        return splitMessage(response);
+        return splitMessage(completion.choices[0].message.content.trim());
     } catch (error) {
         console.error('AI Error:', error.message);
         return null;
     }
 }
 
-/**
- * Analyze incoming message for intent
- */
 async function analyzeIntent(message) {
-    if (!openai) {
-        return { intent: 'unknown', confidence: 0 };
-    }
+    if (!openai) return { intent: 'unknown', confidence: 0 };
 
     try {
         const completion = await openai.chat.completions.create({
             model: 'gpt-3.5-turbo',
             messages: [
-                {
-                    role: 'system',
-                    content: `Classify the intent of this message. Respond with only one of:
-- greeting
-- question
-- interest
-- not_interested
-- objection
-- confirmation
-- thanks
-- other`
-                },
+                { role: 'system', content: `Classify the intent. Respond with only one of: greeting, question, interest, not_interested, objection, confirmation, thanks, other` },
                 { role: 'user', content: message }
             ],
             max_tokens: 20,
             temperature: 0
         });
-
         const intent = completion.choices[0].message.content.trim().toLowerCase();
         return { intent, confidence: 0.8 };
     } catch (error) {
@@ -243,18 +172,6 @@ async function analyzeIntent(message) {
     }
 }
 
-/**
- * Check if AI is available
- */
-function isAvailable() {
-    return openai !== null;
-}
+function isAvailable() { return openai !== null; }
 
-module.exports = {
-    initializeAI,
-    generateResponse,
-    generateFirstMessage,
-    analyzeIntent,
-    isAvailable,
-    getRelevantKnowledge
-};
+module.exports = { initializeAI, generateResponse, generateFirstMessage, analyzeIntent, isAvailable, getRelevantKnowledge };
