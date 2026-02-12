@@ -471,6 +471,28 @@ app.get('/api/whatsapp-chat/:phone', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
+// ============== CONTACT DETAILS (from WhatsApp) ==============
+
+app.get('/api/whatsapp-contact/:phone', async (req, res) => {
+    try {
+        if (!whatsappClient || !isConnected) return res.status(400).json({ success: false, error: 'Not connected' });
+        const phone = req.params.phone;
+        const chatId = `${phone}@c.us`;
+        const contact = await whatsappClient.getContactById(chatId).catch(() => null);
+        if (!contact) return res.json({ success: false, error: 'Contact not found' });
+        res.json({
+            success: true,
+            phone,
+            pushname: contact.pushname || null,
+            name: contact.name || null,
+            shortName: contact.shortName || null,
+            number: contact.number || phone,
+            isMyContact: contact.isMyContact || false,
+            about: null // Can't reliably get about via API
+        });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
 // ============== PROFILE PICTURE ==============
 
 app.get('/api/contacts/:phone/pfp', async (req, res) => {
