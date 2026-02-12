@@ -474,6 +474,57 @@ app.get('/api/whatsapp-chat/:phone', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
+// ============== SAVE CONTACT TO PHONE ==============
+
+app.post('/api/save-contact', async (req, res) => {
+    try {
+        if (!whatsappClient || !isConnected) return res.status(400).json({ success: false, error: 'Not connected' });
+        const { phone, name } = req.body;
+        const jid = `${phone}@c.us`;
+        
+        // Try using WhatsApp Web's internal API to save contact
+        const result = await whatsappClient.pupPage.evaluate(async (jid, name) => {
+            try {
+                // Method 1: Try WWebJS internal store
+                const contact = window.Store.Contact.get(jid);
+                if (contact) {
+                    // Try to set the name via internal method
+                    if (window.Store.Contact.gapiPhoneContactAdd) {
+                        await window.Store.Contact.gapiPhoneContactAdd(jid, name, name);
+                        return { success: true, method: 'gapiPhoneContactAdd' };
+                    }
+                    if (window.Store.Contact.addPhoneContact) {
+                        await window.Store.Contact.addPhoneContact(jid, name);
+                        return { success: true, method: 'addPhoneContact' };
+                    }
+                    // Try syncing
+                    if (contact.setName) {
+                        contact.setName(name);
+                        return { success: true, method: 'setName' };
+                    }
+                }
+                
+                // Method 2: Try ContactSyncAction
+                if (window.Store.ContactSyncAction) {
+                    await window.Store.ContactSyncAction.syncContact(jid, name, name);
+                    return { success: true, method: 'ContactSyncAction' };
+                }
+
+                // Method 3: Try using phonebook sync
+                if (window.Store.SyncAction) {
+                    return { success: false, error: 'SyncAction exists but no sync method found', available: Object.keys(window.Store).filter(k => k.toLowerCase().includes('contact')).join(',') };
+                }
+
+                return { success: false, error: 'No internal method found', storeKeys: Object.keys(window.Store).filter(k => k.toLowerCase().includes('contact')).join(',') };
+            } catch (e) {
+                return { success: false, error: e.message };
+            }
+        }, jid, name);
+        
+        res.json({ success: result.success, result });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
 // ============== SEND VCARD ==============
 
 app.post('/api/send-vcard', async (req, res) => {
