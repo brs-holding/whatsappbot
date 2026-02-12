@@ -1,720 +1,424 @@
-b <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WhatsApp Messager Dashboard</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: #1a1a2e;
-            color: #eee;
-            min-height: 100vh;
-        }
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        header {
-            background: #16213e;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        header h1 {
-            color: #25D366;
-            font-size: 24px;
-        }
-        .status {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .status-dot {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            background: #ff4444;
-        }
-        .status-dot.connected {
-            background: #25D366;
-        }
-        .tabs {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        .tab {
-            padding: 12px 24px;
-            background: #16213e;
-            border: none;
-            color: #eee;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s;
-        }
-        .tab:hover, .tab.active {
-            background: #25D366;
-            color: #000;
-        }
-        .panel {
-            display: none;
-            background: #16213e;
-            padding: 20px;
-            border-radius: 10px;
-        }
-        .panel.active {
-            display: block;
-        }
-        .card {
-            background: #0f3460;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-        }
-        .card h3 {
-            margin-bottom: 15px;
-            color: #25D366;
-        }
-        input, textarea, select {
-            width: 100%;
-            padding: 12px;
-            border: none;
-            border-radius: 6px;
-            background: #1a1a2e;
-            color: #eee;
-            margin-bottom: 10px;
-            font-size: 14px;
-        }
-        button {
-            padding: 12px 24px;
-            background: #25D366;
-            border: none;
-            border-radius: 6px;
-            color: #000;
-            cursor: pointer;
-            font-weight: bold;
-            transition: all 0.3s;
-        }
-        button:hover {
-            background: #128C7E;
-            color: #fff;
-        }
-        button.secondary {
-            background: #0f3460;
-            color: #eee;
-        }
-        button.secondary:hover {
-            background: #16213e;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 15px;
-        }
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #0f3460;
-        }
-        th {
-            color: #25D366;
-        }
-        .badge {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-        }
-        .badge.new { background: #3498db; }
-        .badge.contacted { background: #25D366; color: #000; }
-        .badge.responded { background: #f39c12; }
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-        }
-        .message-list {
-            max-height: 400px;
-            overflow-y: auto;
-        }
-        .message {
-            padding: 10px;
-            margin: 5px 0;
-            border-radius: 8px;
-            background: #1a1a2e;
-        }
-        .message.incoming {
-            background: #0f3460;
-        }
-        .message.outgoing {
-            background: #128C7E;
-            margin-left: 20px;
-        }
-        .message small {
-            opacity: 0.7;
-            font-size: 11px;
-        }
-        .file-upload {
-            border: 2px dashed #25D366;
-            padding: 40px;
-            text-align: center;
-            border-radius: 10px;
-            cursor: pointer;
-            margin-bottom: 15px;
-        }
-        .file-upload:hover {
-            background: rgba(37, 211, 102, 0.1);
-        }
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        .stat-card {
-            background: #0f3460;
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-        }
-        .stat-card .number {
-            font-size: 32px;
-            font-weight: bold;
-            color: #25D366;
-        }
-        .stat-card .label {
-            font-size: 12px;
-            opacity: 0.7;
-            margin-top: 5px;
-        }
-        .qr-section {
-            text-align: center;
-            padding: 40px;
-        }
-        .qr-section img {
-            max-width: 300px;
-            margin: 20px auto;
-        }
-        .hidden { display: none; }
-        @media (max-width: 768px) {
-            .stats { grid-template-columns: repeat(2, 1fr); }
-            .grid { grid-template-columns: 1fr; }
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WhatsApp Sales Operator — Dashboard</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#0a0a1a;color:#e0e0e0;min-height:100vh}
+.container{max-width:1500px;margin:0 auto;padding:15px}
+header{background:#111;padding:15px 20px;border-radius:10px;margin-bottom:15px;display:flex;justify-content:space-between;align-items:center;border:1px solid #222}
+header h1{color:#25D366;font-size:20px}
+.status{display:flex;align-items:center;gap:8px;font-size:13px}
+.dot{width:10px;height:10px;border-radius:50%;background:#f44}
+.dot.on{background:#25D366}
+.tabs{display:flex;gap:6px;margin-bottom:15px;flex-wrap:wrap}
+.tab{padding:10px 18px;background:#151525;border:1px solid #222;color:#aaa;border-radius:6px;cursor:pointer;font-size:13px;transition:.2s}
+.tab:hover,.tab.active{background:#25D366;color:#000;border-color:#25D366}
+.panel{display:none;background:#111;padding:18px;border-radius:10px;border:1px solid #222}
+.panel.active{display:block}
+.card{background:#0d1a30;padding:16px;border-radius:8px;margin-bottom:14px;border:1px solid #1a2a40}
+.card h3{margin-bottom:12px;color:#25D366;font-size:15px}
+input,textarea,select{width:100%;padding:10px;border:1px solid #222;border-radius:5px;background:#0a0a1a;color:#e0e0e0;margin-bottom:8px;font-size:13px}
+button{padding:10px 20px;background:#25D366;border:none;border-radius:5px;color:#000;cursor:pointer;font-weight:bold;font-size:13px;transition:.2s}
+button:hover{background:#128C7E;color:#fff}
+.btn-danger{background:#e74c3c;color:#fff}
+.btn-danger:hover{background:#c0392b}
+.btn-warning{background:#f39c12;color:#000}
+.btn-sm{padding:6px 12px;font-size:12px}
+.btn-outline{background:transparent;border:1px solid #25D366;color:#25D366}
+table{width:100%;border-collapse:collapse;margin-top:10px;font-size:13px}
+th,td{padding:10px;text-align:left;border-bottom:1px solid #1a2a40}
+th{color:#25D366;font-size:12px;text-transform:uppercase}
+.badge{padding:3px 8px;border-radius:3px;font-size:11px;font-weight:bold}
+.badge-green{background:#25D366;color:#000}
+.badge-blue{background:#3498db;color:#fff}
+.badge-orange{background:#f39c12;color:#000}
+.badge-red{background:#e74c3c;color:#fff}
+.badge-gray{background:#555;color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-bottom:15px}
+.stat{background:#0d1a30;padding:14px;border-radius:8px;text-align:center;border:1px solid #1a2a40}
+.stat .num{font-size:28px;font-weight:bold;color:#25D366}
+.stat .lbl{font-size:11px;opacity:.6;margin-top:4px}
+.pipeline-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:12px 0}
+.stage-card{background:#0d1a30;padding:12px;border-radius:6px;text-align:center;border:1px solid #1a2a40;cursor:pointer;transition:.2s}
+.stage-card:hover{border-color:#25D366}
+.stage-card .count{font-size:24px;font-weight:bold;color:#25D366}
+.stage-card .name{font-size:11px;opacity:.7;margin-top:4px}
+.msg{padding:8px 12px;margin:4px 0;border-radius:6px;font-size:13px}
+.msg.in{background:#0d1a30}
+.msg.out{background:#0a3d2a;margin-left:15%}
+.msg small{opacity:.5;font-size:10px}
+.event{padding:6px 10px;margin:3px 0;border-radius:4px;font-size:12px;background:#0d1a30;display:flex;justify-content:space-between}
+.event .type{color:#25D366;font-weight:bold}
+.file-upload{border:2px dashed #25D366;padding:30px;text-align:center;border-radius:8px;cursor:pointer;margin-bottom:10px;font-size:13px}
+.file-upload:hover{background:rgba(37,211,102,.05)}
+.qr-section{text-align:center;padding:30px}
+.qr-section img{max-width:280px;margin:15px auto;display:block}
+.kill-switch{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+pre{background:#0a0a1a;padding:12px;border-radius:6px;overflow-x:auto;font-size:12px;max-height:400px;overflow-y:auto;border:1px solid #222}
+@media(max-width:768px){.stats{grid-template-columns:repeat(2,1fr)}.grid{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>📱 WhatsApp Messager</h1>
-            <div class="status">
-                <span class="status-dot" id="statusDot"></span>
-                <span id="statusText">Checking...</span>
-            </div>
-        </header>
+<div class="container">
+<header>
+    <h1>📱 WhatsApp Sales Operator</h1>
+    <div class="status"><span class="dot" id="dot"></span><span id="statusTxt">...</span></div>
+</header>
 
-        <div class="stats">
-            <div class="stat-card">
-                <div class="number" id="statContacts">0</div>
-                <div class="label">Contacts</div>
-            </div>
-            <div class="stat-card">
-                <div class="number" id="statMessages">0</div>
-                <div class="label">Messages Sent</div>
-            </div>
-            <div class="stat-card">
-                <div class="number" id="statKnowledge">0</div>
-                <div class="label">Knowledge Items</div>
-            </div>
-            <div class="stat-card">
-                <div class="number" id="statTemplates">0</div>
-                <div class="label">Templates</div>
-            </div>
+<div class="stats" id="kpiBar"></div>
+
+<div class="tabs">
+    <button class="tab active" onclick="show('dash')">📊 Dashboard</button>
+    <button class="tab" onclick="show('pipeline')">🔄 Pipeline</button>
+    <button class="tab" onclick="show('contacts')">📇 Contacts</button>
+    <button class="tab" onclick="show('send')">📤 Send</button>
+    <button class="tab" onclick="show('kb')">📚 Knowledge</button>
+    <button class="tab" onclick="show('events')">📋 Events</button>
+    <button class="tab" onclick="show('settings')">⚙️ Settings</button>
+    <button class="tab" onclick="show('connect')">🔗 Connect</button>
+</div>
+
+<!-- Dashboard -->
+<div class="panel active" id="dash-panel">
+    <div class="card"><h3>🔄 Pipeline Overview</h3><div class="pipeline-row" id="pipelineOverview"></div></div>
+    <div class="grid">
+        <div class="card"><h3>🚨 Needs Human Attention</h3><div id="humanList"></div></div>
+        <div class="card"><h3>📋 Recent Events</h3><div id="recentEvents"></div></div>
+    </div>
+</div>
+
+<!-- Pipeline -->
+<div class="panel" id="pipeline-panel">
+    <div class="card"><h3>🔄 Pipeline Stages</h3><div class="pipeline-row" id="pipelineDetailed"></div></div>
+    <div class="card"><h3>Contacts in Stage</h3>
+        <input type="text" id="stageFilter" placeholder="Click a stage above to filter..." readonly>
+        <table><thead><tr><th>Phone</th><th>Name</th><th>Stage</th><th>Consent</th><th>Risk</th><th>Actions</th></tr></thead>
+        <tbody id="stageContacts"></tbody></table>
+    </div>
+</div>
+
+<!-- Contacts -->
+<div class="panel" id="contacts-panel">
+    <div class="grid">
+        <div class="card"><h3>➕ Add Contact</h3>
+            <input id="cPhone" placeholder="Phone (country code, no +)">
+            <input id="cName" placeholder="Name"><input id="cCompany" placeholder="Company">
+            <button onclick="addContact()">Add</button>
         </div>
-
-        <div class="tabs">
-            <button class="tab active" onclick="showPanel('connect')">🔗 Connect</button>
-            <button class="tab" onclick="showPanel('contacts')">📇 Contacts</button>
-            <button class="tab" onclick="showPanel('send')">📤 Send Message</button>
-            <button class="tab" onclick="showPanel('knowledge')">📚 Knowledge Base</button>
-            <button class="tab" onclick="showPanel('templates')">📝 Templates</button>
-            <button class="tab" onclick="showPanel('conversations')">💬 Conversations</button>
-        </div>
-
-        <!-- Connect Panel -->
-        <div class="panel active" id="connect-panel">
-            <div class="card">
-                <h3>🔗 Connect WhatsApp</h3>
-                <div class="qr-section">
-                    <p id="qrStatus">Loading QR code...</p>
-                    <img id="qrImage" style="display:none; max-width: 300px; margin: 20px auto;" />
-                    <div id="qrCode"></div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Contacts Panel -->
-        <div class="panel" id="contacts-panel">
-            <div class="grid">
-                <div class="card">
-                    <h3>➕ Add Contact</h3>
-                    <input type="text" id="contactPhone" placeholder="Phone (with country code, no +)">
-                    <input type="text" id="contactName" placeholder="Name">
-                    <input type="text" id="contactCompany" placeholder="Company">
-                    <input type="email" id="contactEmail" placeholder="Email">
-                    <textarea id="contactNotes" placeholder="Notes" rows="2"></textarea>
-                    <button onclick="addContact()">Add Contact</button>
-                </div>
-                <div class="card">
-                    <h3>📁 Upload CSV</h3>
-                    <div class="file-upload" onclick="document.getElementById('csvFile').click()">
-                        <p>📁 Click to upload CSV file</p>
-                        <p style="font-size: 12px; opacity: 0.7;">Columns: phone, name, company, email</p>
-                    </div>
-                    <input type="file" id="csvFile" accept=".csv" style="display: none;" onchange="uploadContacts(this)">
-                </div>
-            </div>
-            <div class="card">
-                <h3>📋 All Contacts</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Phone</th>
-                            <th>Name</th>
-                            <th>Company</th>
-                            <th>Status</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="contactsTable"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Send Message Panel -->
-        <div class="panel" id="send-panel">
-            <div class="card">
-                <h3>📤 Send Message</h3>
-                <input type="text" id="sendPhone" placeholder="Phone number (with country code)">
-                <textarea id="sendMessage" placeholder="Type your message here... (Will be split into max 70 char chunks)" rows="4"></textarea>
-                <p style="font-size: 12px; opacity: 0.7; margin-bottom: 10px;">
-                    Characters: <span id="charCount">0</span> | Parts: <span id="partCount">0</span>
-                </p>
-                <button onclick="sendMessage()">Send Message</button>
-            </div>
-        </div>
-
-        <!-- Knowledge Base Panel -->
-        <div class="panel" id="knowledge-panel">
-            <div class="card">
-                <h3>➕ Add Knowledge</h3>
-                <select id="knowledgeCategory">
-                    <option value="general">General</option>
-                    <option value="pricing">Pricing</option>
-                    <option value="services">Services</option>
-                    <option value="faq">FAQ</option>
-                    <option value="company">Company Info</option>
-                </select>
-                <input type="text" id="knowledgeQuestion" placeholder="Question (optional)">
-                <textarea id="knowledgeAnswer" placeholder="Answer / Information" rows="3"></textarea>
-                <input type="text" id="knowledgeKeywords" placeholder="Keywords (comma separated)">
-                <button onclick="addKnowledge()">Add Knowledge</button>
-            </div>
-            <div class="card">
-                <h3>📚 Knowledge Base</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Category</th>
-                            <th>Question</th>
-                            <th>Answer</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="knowledgeTable"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Templates Panel -->
-        <div class="panel" id="templates-panel">
-            <div class="card">
-                <h3>➕ Create Template</h3>
-                <input type="text" id="templateName" placeholder="Template name">
-                <textarea id="templateContent" placeholder="Template content... Use {name} and {company} as variables" rows="3"></textarea>
-                <button onclick="addTemplate()">Create Template</button>
-            </div>
-            <div class="card">
-                <h3>📝 Templates</h3>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Name</th>
-                            <th>Content</th>
-                            <th>Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="templatesTable"></tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- Conversations Panel -->
-        <div class="panel" id="conversations-panel">
-            <div class="card">
-                <h3>💬 View Conversations</h3>
-                <input type="text" id="convPhone" placeholder="Phone number to view conversations">
-                <button onclick="loadConversations()">Load Conversations</button>
-            </div>
-            <div class="card">
-                <h3>Messages</h3>
-                <div class="message-list" id="messageList"></div>
-            </div>
+        <div class="card"><h3>📁 Batch Import</h3>
+            <div class="file-upload" onclick="document.getElementById('csvFile').click()">📁 Upload CSV (phone,name,company,email)</div>
+            <input type="file" id="csvFile" accept=".csv" style="display:none" onchange="uploadCSV(this)">
+            <input id="batchProject" placeholder="Pitch project (optional)">
+            <input id="batchType" placeholder="Batch type (e.g. crypto_group)">
         </div>
     </div>
+    <div class="card"><h3>📋 All Contacts</h3>
+        <table><thead><tr><th>Phone</th><th>Name</th><th>Stage</th><th>Consent</th><th>Risk</th><th>Bot</th><th>Actions</th></tr></thead>
+        <tbody id="contactsTable"></tbody></table>
+    </div>
+</div>
 
-    <script>
-        const API = '/api';
+<!-- Send -->
+<div class="panel" id="send-panel">
+    <div class="card"><h3>📤 Send Message</h3>
+        <input id="sendPhone" placeholder="Phone number">
+        <textarea id="sendMsg" rows="3" placeholder="Message (auto-split at 70 chars)..."></textarea>
+        <div style="font-size:12px;opacity:.6;margin-bottom:8px">Chars: <span id="cc">0</span> | Parts: <span id="pc">1</span></div>
+        <button onclick="sendMsg()">Send</button>
+    </div>
+</div>
 
-        // Check status
-        async function checkStatus() {
-            try {
-                const res = await fetch(`${API}/status`);
-                const data = await res.json();
-                const dot = document.getElementById('statusDot');
-                const text = document.getElementById('statusText');
-                
-                if (data.connected) {
-                    dot.classList.add('connected');
-                    text.textContent = 'Connected';
-                } else {
-                    dot.classList.remove('connected');
-                    text.textContent = 'Disconnected';
-                }
-            } catch (e) {
-                document.getElementById('statusText').textContent = 'Server Offline';
-            }
-        }
+<!-- Knowledge -->
+<div class="panel" id="kb-panel">
+    <div class="card"><h3>➕ Add Knowledge</h3>
+        <select id="kbCat"><option value="general">General</option><option value="pricing">Pricing</option><option value="services">Services</option><option value="faq">FAQ</option><option value="company">Company</option><option value="objection">Objection Response</option></select>
+        <input id="kbQ" placeholder="Question (optional)">
+        <textarea id="kbA" rows="2" placeholder="Answer / Information"></textarea>
+        <input id="kbKW" placeholder="Keywords (comma separated)">
+        <button onclick="addKB()">Add</button>
+    </div>
+    <div class="card"><h3>📚 Knowledge Base</h3>
+        <table><thead><tr><th>Cat</th><th>Q</th><th>Answer</th><th>X</th></tr></thead><tbody id="kbTable"></tbody></table>
+    </div>
+</div>
 
-        // Load stats
-        async function loadStats() {
-            try {
-                const [contacts, knowledge, templates] = await Promise.all([
-                    fetch(`${API}/contacts`).then(r => r.json()),
-                    fetch(`${API}/knowledge`).then(r => r.json()),
-                    fetch(`${API}/templates`).then(r => r.json())
-                ]);
-                
-                document.getElementById('statContacts').textContent = contacts.contacts?.length || 0;
-                document.getElementById('statKnowledge').textContent = knowledge.knowledge?.length || 0;
-                document.getElementById('statTemplates').textContent = templates.templates?.length || 0;
-            } catch (e) {
-                console.error('Error loading stats:', e);
-            }
-        }
+<!-- Events -->
+<div class="panel" id="events-panel">
+    <div class="card"><h3>📋 Event Timeline</h3>
+        <input id="evPhone" placeholder="Filter by phone (optional)">
+        <button onclick="loadEvents()">Load Events</button>
+        <div id="eventsList" style="margin-top:10px;max-height:500px;overflow-y:auto"></div>
+    </div>
+</div>
 
-        // Show panel
-        function showPanel(name) {
-            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-            document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-            
-            event.target.classList.add('active');
-            document.getElementById(`${name}-panel`).classList.add('active');
-            
-            if (name === 'contacts') loadContacts();
-            if (name === 'knowledge') loadKnowledge();
-            if (name === 'templates') loadTemplates();
-        }
+<!-- Settings -->
+<div class="panel" id="settings-panel">
+    <div class="card"><h3>🛡️ Kill Switch</h3>
+        <div class="kill-switch">
+            <button class="btn-danger" onclick="emergencyStop()">🚨 EMERGENCY STOP</button>
+            <button onclick="resumeSend()">✅ Resume Sending</button>
+            <span id="sendStatus"></span>
+        </div>
+    </div>
+    <div class="grid">
+        <div class="card"><h3>⚙️ Auto-Reply</h3>
+            <button id="arBtn" onclick="toggleAutoReply()">Toggle Auto-Reply</button>
+            <span id="arStatus"></span>
+        </div>
+        <div class="card"><h3>📊 System Settings</h3><div id="settingsList"></div></div>
+    </div>
+</div>
 
-        // Load contacts
-        async function loadContacts() {
-            try {
-                const res = await fetch(`${API}/contacts`);
-                const data = await res.json();
-                const tbody = document.getElementById('contactsTable');
-                tbody.innerHTML = '';
-                
-                data.contacts?.forEach(c => {
-                    tbody.innerHTML += `
-                        <tr>
-                            <td>${c.phone}</td>
-                            <td>${c.name || '-'}</td>
-                            <td>${c.company || '-'}</td>
-                            <td><span class="badge ${c.status}">${c.status}</span></td>
-                            <td>
-                                <button class="secondary" onclick="fillPhone('${c.phone}')">Message</button>
-                            </td>
-                        </tr>
-                    `;
-                });
-            } catch (e) {
-                console.error('Error loading contacts:', e);
-            }
-        }
+<!-- Connect -->
+<div class="panel" id="connect-panel">
+    <div class="card"><h3>🔗 Connect WhatsApp</h3>
+        <div class="qr-section">
+            <p id="qrStatus">Loading...</p>
+            <img id="qrImg" style="display:none">
+        </div>
+    </div>
+</div>
 
-        // Add contact
-        async function addContact() {
-            const phone = document.getElementById('contactPhone').value;
-            const name = document.getElementById('contactName').value;
-            const company = document.getElementById('contactCompany').value;
-            const email = document.getElementById('contactEmail').value;
-            const notes = document.getElementById('contactNotes').value;
+<!-- Contact Detail Modal -->
+<div id="modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,.8);z-index:999;overflow-y:auto">
+    <div style="max-width:700px;margin:50px auto;background:#111;border-radius:10px;padding:20px;border:1px solid #222">
+        <div style="display:flex;justify-content:space-between"><h3 id="modalTitle" style="color:#25D366"></h3><button class="btn-sm btn-outline" onclick="closeModal()">✕</button></div>
+        <div id="modalContent" style="margin-top:15px"></div>
+    </div>
+</div>
+</div>
 
-            try {
-                await fetch(`${API}/contacts`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone, name, company, email, notes })
-                });
-                loadContacts();
-                loadStats();
-                // Clear form
-                ['contactPhone', 'contactName', 'contactCompany', 'contactEmail', 'contactNotes'].forEach(id => {
-                    document.getElementById(id).value = '';
-                });
-            } catch (e) {
-                alert('Error adding contact');
-            }
-        }
+<script>
+const A='/api';
 
-        // Upload contacts
-        async function uploadContacts(input) {
-            if (!input.files[0]) return;
-            
-            const formData = new FormData();
-            formData.append('file', input.files[0]);
-            
-            try {
-                const res = await fetch(`${API}/contacts/upload`, {
-                    method: 'POST',
-                    body: formData
-                });
-                const data = await res.json();
-                alert(data.message);
-                loadContacts();
-                loadStats();
-            } catch (e) {
-                alert('Error uploading contacts');
-            }
-        }
+// ── Status ──
+async function checkStatus(){
+    try{const r=await(await fetch(A+'/status')).json();
+    document.getElementById('dot').className='dot'+(r.connected?' on':'');
+    document.getElementById('statusTxt').textContent=r.connected?'Connected':'Disconnected';
+    }catch(e){document.getElementById('statusTxt').textContent='Offline'}
+}
 
-        // Fill phone for messaging
-        function fillPhone(phone) {
-            document.getElementById('sendPhone').value = phone;
-            showPanel('send');
-        }
+// ── KPIs ──
+async function loadKPIs(){
+    try{const r=await(await fetch(A+'/kpis')).json();if(!r.success)return;const k=r.kpis;
+    document.getElementById('kpiBar').innerHTML=`
+        <div class="stat"><div class="num">${k.totalContacts}</div><div class="lbl">Contacts</div></div>
+        <div class="stat"><div class="num">${k.messagesSent}</div><div class="lbl">Sent</div></div>
+        <div class="stat"><div class="num">${k.messagesReceived}</div><div class="lbl">Received</div></div>
+        <div class="stat"><div class="num">${k.humanRequired}</div><div class="lbl">⚠️ Human Needed</div></div>
+        <div class="stat"><div class="num">${k.escalations}</div><div class="lbl">🚨 Escalations</div></div>
+        <div class="stat"><div class="num">${k.blocked}</div><div class="lbl">🛡️ Blocked</div></div>
+        <div class="stat"><div class="num" style="color:${k.globalSendEnabled?'#25D366':'#e74c3c'}">${k.globalSendEnabled?'ON':'OFF'}</div><div class="lbl">Send Status</div></div>
+        <div class="stat"><div class="num" style="color:${k.autoReplyEnabled?'#25D366':'#f39c12'}">${k.autoReplyEnabled?'ON':'OFF'}</div><div class="lbl">Auto-Reply</div></div>`;
+    }catch(e){}
+}
 
-        // Send message
-        async function sendMessage() {
-            const phone = document.getElementById('sendPhone').value;
-            const message = document.getElementById('sendMessage').value;
+// ── Pipeline ──
+async function loadPipeline(target='pipelineOverview'){
+    try{const r=await(await fetch(A+'/pipeline')).json();if(!r.success)return;
+    const el=document.getElementById(target);el.innerHTML='';
+    const colors={INTRO:'#3498db',QUALIFYING:'#f39c12',VALUE_DELIVERY:'#9b59b6',BOOKING:'#25D366',FOLLOW_UP:'#e67e22',WON:'#2ecc71',LOST:'#e74c3c',DND:'#555'};
+    for(const[stage,list]of Object.entries(r.pipeline)){
+        el.innerHTML+=`<div class="stage-card" onclick="showStageContacts('${stage}')">
+            <div class="count" style="color:${colors[stage]||'#fff'}">${list.length}</div><div class="name">${stage}</div></div>`;
+    }
+    }catch(e){}
+}
 
-            if (!phone || !message) {
-                alert('Please enter phone and message');
-                return;
-            }
+async function showStageContacts(stage){
+    document.getElementById('stageFilter').value=stage;
+    try{const r=await(await fetch(A+'/pipeline')).json();
+    const list=r.pipeline[stage]||[];
+    const tb=document.getElementById('stageContacts');tb.innerHTML='';
+    list.forEach(c=>{tb.innerHTML+=contactRow(c)});
+    }catch(e){}
+}
 
-            try {
-                const res = await fetch(`${API}/messages/send`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone, message })
-                });
-                const data = await res.json();
-                
-                if (data.success) {
-                    alert('Message sent!');
-                    document.getElementById('sendMessage').value = '';
-                    updateCharCount();
-                } else {
-                    alert('Error: ' + data.error);
-                }
-            } catch (e) {
-                alert('Error sending message. Is WhatsApp connected?');
-            }
-        }
+// ── Contacts ──
+function contactRow(c){
+    const consent={UNKNOWN:'badge-gray',SOFT_OPTIN_SENT:'badge-blue',OPTED_IN:'badge-green',DND:'badge-red'};
+    const botStatus=c.bot_paused?'⏸️':'🤖';
+    return `<tr>
+        <td>${c.phone}</td><td>${c.name||'-'}</td>
+        <td><span class="badge badge-blue">${c.pipeline_stage||'INTRO'}</span></td>
+        <td><span class="badge ${consent[c.consent_status]||'badge-gray'}">${c.consent_status||'?'}</span></td>
+        <td>${c.risk_score||0}</td>
+        <td>${botStatus}</td>
+        <td>
+            <button class="btn-sm btn-outline" onclick="viewContact('${c.phone}')">View</button>
+            <button class="btn-sm btn-warning" onclick="takeover('${c.phone}')">👤</button>
+        </td></tr>`;
+}
 
-        // Character count
-        document.getElementById('sendMessage')?.addEventListener('input', updateCharCount);
-        
-        function updateCharCount() {
-            const msg = document.getElementById('sendMessage').value;
-            const chars = msg.length;
-            const parts = Math.ceil(chars / 70);
-            document.getElementById('charCount').textContent = chars;
-            document.getElementById('partCount').textContent = parts || 1;
-        }
+async function loadContacts(){
+    try{const r=await(await fetch(A+'/contacts')).json();
+    const tb=document.getElementById('contactsTable');tb.innerHTML='';
+    (r.contacts||[]).forEach(c=>{tb.innerHTML+=contactRow(c)});
+    }catch(e){}
+}
 
-        // Knowledge
-        async function loadKnowledge() {
-            try {
-                const res = await fetch(`${API}/knowledge`);
-                const data = await res.json();
-                const tbody = document.getElementById('knowledgeTable');
-                tbody.innerHTML = '';
-                
-                data.knowledge?.forEach(k => {
-                    tbody.innerHTML += `
-                        <tr>
-                            <td>${k.category}</td>
-                            <td>${k.question || '-'}</td>
-                            <td>${k.answer?.substring(0, 50)}...</td>
-                            <td>
-                                <button class="secondary" onclick="deleteKnowledge(${k.id})">Delete</button>
-                            </td>
-                        </tr>
-                    `;
-                });
-            } catch (e) {
-                console.error('Error loading knowledge:', e);
-            }
-        }
+async function addContact(){
+    await fetch(A+'/contacts',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({phone:document.getElementById('cPhone').value,name:document.getElementById('cName').value,company:document.getElementById('cCompany').value})});
+    loadContacts();loadKPIs();
+}
 
-        async function addKnowledge() {
-            const category = document.getElementById('knowledgeCategory').value;
-            const question = document.getElementById('knowledgeQuestion').value;
-            const answer = document.getElementById('knowledgeAnswer').value;
-            const keywords = document.getElementById('knowledgeKeywords').value;
+async function uploadCSV(input){
+    if(!input.files[0])return;
+    const fd=new FormData();fd.append('file',input.files[0]);
+    fd.append('pitch_project',document.getElementById('batchProject').value);
+    fd.append('batch_type',document.getElementById('batchType').value);
+    const r=await(await fetch(A+'/contacts/batch-upload',{method:'POST',body:fd})).json();
+    alert(r.message);loadContacts();loadKPIs();
+}
 
-            try {
-                await fetch(`${API}/knowledge`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ category, question, answer, keywords })
-                });
-                loadKnowledge();
-                loadStats();
-            } catch (e) {
-                alert('Error adding knowledge');
-            }
-        }
+// ── View Contact (modal with CCB) ──
+async function viewContact(phone){
+    const[cRes,convRes,evRes]=await Promise.all([
+        fetch(A+'/contacts/'+phone+'/ccb').then(r=>r.json()),
+        fetch(A+'/conversations/'+phone).then(r=>r.json()),
+        fetch(A+'/events/'+phone).then(r=>r.json())
+    ]);
+    const c=cRes.contact||{};const ccb=cRes.ccb;
+    let html=`<div class="grid"><div>
+        <p><strong>Phone:</strong> ${c.phone}</p><p><strong>Name:</strong> ${c.name||'-'}</p>
+        <p><strong>Stage:</strong> <span class="badge badge-blue">${c.pipeline_stage}</span></p>
+        <p><strong>Consent:</strong> ${c.consent_status}</p><p><strong>Risk:</strong> ${c.risk_score||0}</p>
+        <p><strong>Bot:</strong> ${c.bot_paused?'⏸️ Paused':'🤖 Active'}</p>
+        <div style="margin-top:10px">
+            <button class="btn-sm" onclick="takeover('${phone}')">👤 Human Takeover</button>
+            <button class="btn-sm" onclick="resumeBot('${phone}')">🤖 Resume Bot</button>
+            <button class="btn-sm btn-danger" onclick="setDND('${phone}')">🚫 DND</button>
+        </div></div>
+        <div><h4 style="color:#25D366;margin-bottom:8px">📊 CCB (Conclusion)</h4>
+        ${ccb?`<pre>${JSON.stringify(ccb,null,2)}</pre>`:'<p style="opacity:.5">No CCB yet</p>'}</div></div>
+        <div style="margin-top:15px"><h4 style="color:#25D366;margin-bottom:8px">💬 Conversations</h4>`;
+    (convRes.conversations||[]).slice(0,20).forEach(m=>{
+        html+=`<div class="msg ${m.direction==='incoming'?'in':'out'}">${m.message}<br><small>${m.created_at}</small></div>`;
+    });
+    html+=`</div><div style="margin-top:15px"><h4 style="color:#25D366;margin-bottom:8px">📋 Events</h4>`;
+    (evRes.events||[]).slice(0,15).forEach(e=>{
+        html+=`<div class="event"><span class="type">${e.event_type}</span><span style="opacity:.5">${e.created_at}</span></div>`;
+    });
+    html+='</div>';
+    document.getElementById('modalTitle').textContent=`${c.name||c.phone}`;
+    document.getElementById('modalContent').innerHTML=html;
+    document.getElementById('modal').style.display='block';
+}
+function closeModal(){document.getElementById('modal').style.display='none'}
 
-        async function deleteKnowledge(id) {
-            if (!confirm('Delete this item?')) return;
-            try {
-                await fetch(`${API}/knowledge/${id}`, { method: 'DELETE' });
-                loadKnowledge();
-                loadStats();
-            } catch (e) {
-                alert('Error deleting');
-            }
-        }
+// ── Human Takeover ──
+async function takeover(p){await fetch(A+'/contacts/'+p+'/takeover',{method:'POST'});alert('Bot paused for '+p);loadContacts();loadKPIs();}
+async function resumeBot(p){await fetch(A+'/contacts/'+p+'/resume-bot',{method:'POST'});alert('Bot resumed for '+p);loadContacts();}
+async function setDND(p){if(!confirm('Set DND?'))return;await fetch(A+'/contacts/'+p+'/dnd',{method:'POST'});alert('DND set');loadContacts();}
 
-        // Templates
-        async function loadTemplates() {
-            try {
-                const res = await fetch(`${API}/templates`);
-                const data = await res.json();
-                const tbody = document.getElementById('templatesTable');
-                tbody.innerHTML = '';
-                
-                data.templates?.forEach(t => {
-                    tbody.innerHTML += `
-                        <tr>
-                            <td>${t.name}</td>
-                            <td>${t.content}</td>
-                            <td>
-                                <button class="secondary" onclick="useTemplate('${t.content.replace(/'/g, "\\'")}')">Use</button>
-                            </td>
-                        </tr>
-                    `;
-                });
-            } catch (e) {
-                console.error('Error loading templates:', e);
-            }
-        }
+async function loadHumanRequired(){
+    try{const r=await(await fetch(A+'/human-required')).json();
+    const el=document.getElementById('humanList');
+    if(!r.contacts?.length){el.innerHTML='<p style="opacity:.5">None</p>';return}
+    el.innerHTML='';r.contacts.forEach(c=>{
+        el.innerHTML+=`<div style="padding:8px;margin:4px 0;background:#1a0a0a;border-radius:4px;display:flex;justify-content:space-between;align-items:center">
+            <span>${c.name||c.phone} (risk: ${c.risk_score})</span>
+            <button class="btn-sm" onclick="viewContact('${c.phone}')">View</button></div>`;
+    });}catch(e){}
+}
 
-        async function addTemplate() {
-            const name = document.getElementById('templateName').value;
-            const content = document.getElementById('templateContent').value;
+// ── Events ──
+async function loadEvents(){
+    const phone=document.getElementById('evPhone').value;
+    const url=phone?A+'/events/'+phone:A+'/events';
+    try{const r=await(await fetch(url)).json();
+    const el=document.getElementById('eventsList');el.innerHTML='';
+    (r.events||[]).forEach(e=>{
+        el.innerHTML+=`<div class="event"><span class="type">${e.event_type}</span><span>${e.phone||''}</span><span style="opacity:.5">${e.created_at}</span></div>`;
+    });}catch(e){}
+}
 
-            try {
-                await fetch(`${API}/templates`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, content })
-                });
-                loadTemplates();
-                loadStats();
-            } catch (e) {
-                alert('Error adding template');
-            }
-        }
+async function loadRecentEvents(){
+    try{const r=await(await fetch(A+'/events')).json();
+    const el=document.getElementById('recentEvents');el.innerHTML='';
+    (r.events||[]).slice(0,10).forEach(e=>{
+        el.innerHTML+=`<div class="event"><span class="type">${e.event_type}</span><span>${e.phone||''}</span><span style="opacity:.5">${e.created_at}</span></div>`;
+    });}catch(e){}
+}
 
-        function useTemplate(content) {
-            document.getElementById('sendMessage').value = content;
-            showPanel('send');
-            updateCharCount();
-        }
+// ── Send ──
+async function sendMsg(){
+    const p=document.getElementById('sendPhone').value,m=document.getElementById('sendMsg').value;
+    if(!p||!m)return alert('Enter phone + message');
+    const r=await(await fetch(A+'/messages/send',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({phone:p,message:m})})).json();
+    alert(r.success?'Sent!':'Error: '+r.error);if(r.success)document.getElementById('sendMsg').value='';
+}
+document.getElementById('sendMsg')?.addEventListener('input',function(){
+    document.getElementById('cc').textContent=this.value.length;
+    document.getElementById('pc').textContent=Math.max(1,Math.ceil(this.value.length/70));
+});
 
-        // Conversations
-        async function loadConversations() {
-            const phone = document.getElementById('convPhone').value;
-            if (!phone) return;
+// ── Knowledge ──
+async function loadKB(){
+    try{const r=await(await fetch(A+'/knowledge')).json();
+    const tb=document.getElementById('kbTable');tb.innerHTML='';
+    (r.knowledge||[]).forEach(k=>{tb.innerHTML+=`<tr><td>${k.category}</td><td>${k.question||'-'}</td><td>${(k.answer||'').substring(0,60)}</td>
+        <td><button class="btn-sm btn-danger" onclick="delKB(${k.id})">X</button></td></tr>`});
+    }catch(e){}
+}
+async function addKB(){
+    await fetch(A+'/knowledge',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({category:document.getElementById('kbCat').value,question:document.getElementById('kbQ').value,answer:document.getElementById('kbA').value,keywords:document.getElementById('kbKW').value})});
+    loadKB();loadKPIs();
+}
+async function delKB(id){await fetch(A+'/knowledge/'+id,{method:'DELETE'});loadKB();}
 
-            try {
-                const res = await fetch(`${API}/conversations/${phone}`);
-                const data = await res.json();
-                const list = document.getElementById('messageList');
-                list.innerHTML = '';
-                
-                data.conversations?.forEach(m => {
-                    const time = new Date(m.created_at).toLocaleString();
-                    list.innerHTML += `
-                        <div class="message ${m.direction}">
-                            <div>${m.message}</div>
-                            <small>${time}</small>
-                        </div>
-                    `;
-                });
-            } catch (e) {
-                alert('Error loading conversations');
-            }
-        }
+// ── Settings / Kill Switch ──
+async function loadSettings(){
+    try{const r=await(await fetch(A+'/settings')).json();
+    document.getElementById('sendStatus').innerHTML=r.globalSendEnabled?'<span class="badge badge-green">SENDING ON</span>':'<span class="badge badge-red">SENDING OFF</span>';
+    document.getElementById('arStatus').innerHTML=r.autoReplyEnabled?'<span class="badge badge-green">ON</span>':'<span class="badge badge-orange">OFF</span>';
+    const el=document.getElementById('settingsList');el.innerHTML='';
+    (r.settings||[]).forEach(s=>{el.innerHTML+=`<div style="padding:4px 0;font-size:12px"><strong>${s.key}:</strong> ${s.value}</div>`});
+    }catch(e){}
+}
+async function emergencyStop(){if(!confirm('🚨 STOP ALL SENDING?'))return;await fetch(A+'/kill-switch/stop',{method:'POST'});loadSettings();loadKPIs();alert('EMERGENCY STOP activated');}
+async function resumeSend(){await fetch(A+'/kill-switch/resume',{method:'POST'});loadSettings();loadKPIs();}
+async function toggleAutoReply(){
+    const r=await(await fetch(A+'/settings')).json();
+    await fetch(A+'/settings',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({key:'auto_reply_enabled',value:r.autoReplyEnabled?'false':'true'})});
+    loadSettings();loadKPIs();
+}
 
-        // Load QR Code
-        async function loadQRCode() {
-            try {
-                const res = await fetch(`${API}/qr`);
-                const data = await res.json();
-                const qrStatus = document.getElementById('qrStatus');
-                const qrImage = document.getElementById('qrImage');
-                
-                if (data.connected) {
-                    qrStatus.textContent = '✅ WhatsApp Connected!';
-                    qrStatus.style.color = '#25D366';
-                    qrImage.style.display = 'none';
-                } else if (data.qrImage) {
-                    qrStatus.textContent = '📱 Scan this QR code with WhatsApp:';
-                    qrStatus.style.color = '#eee';
-                    qrImage.src = data.qrImage;
-                    qrImage.style.display = 'block';
-                } else {
-                    qrStatus.textContent = '⏳ Waiting for QR code...';
-                    qrStatus.style.color = '#f39c12';
-                    qrImage.style.display = 'none';
-                }
-            } catch (e) {
-                document.getElementById('qrStatus').textContent = '❌ Server offline - Run npm start';
-            }
-        }
+// ── QR ──
+async function loadQR(){
+    try{const r=await(await fetch(A+'/qr')).json();
+    const s=document.getElementById('qrStatus'),i=document.getElementById('qrImg');
+    if(r.connected){s.textContent='✅ Connected';s.style.color='#25D366';i.style.display='none'}
+    else if(r.qrImage){s.textContent='📱 Scan QR:';i.src=r.qrImage;i.style.display='block'}
+    else{s.textContent='⏳ Waiting...';i.style.display='none'}
+    }catch(e){document.getElementById('qrStatus').textContent='Server offline'}
+}
 
-        // Initialize
-        checkStatus();
-        loadStats();
-        loadQRCode();
-        setInterval(checkStatus, 5000);
-        setInterval(loadQRCode, 3000);
-    </script>
+// ── Tab switching ──
+function show(name){
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    event.target.classList.add('active');
+    document.getElementById(name+'-panel').classList.add('active');
+    if(name==='contacts')loadContacts();
+    if(name==='pipeline'){loadPipeline('pipelineDetailed');}
+    if(name==='kb')loadKB();
+    if(name==='events')loadEvents();
+    if(name==='settings')loadSettings();
+    if(name==='connect')loadQR();
+    if(name==='dash'){loadPipeline();loadHumanRequired();loadRecentEvents();}
+}
+
+// ── Init ──
+checkStatus();loadKPIs();loadPipeline();loadHumanRequired();loadRecentEvents();
+setInterval(checkStatus,5000);setInterval(loadKPIs,10000);setInterval(loadQR,4000);
+</script>
 </body>
 </html>
