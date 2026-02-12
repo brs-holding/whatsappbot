@@ -471,6 +471,19 @@ app.get('/api/whatsapp-chat/:phone', async (req, res) => {
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
+// ============== SEND VCARD ==============
+
+app.post('/api/send-vcard', async (req, res) => {
+    try {
+        if (!whatsappClient || !isConnected) return res.status(400).json({ success: false, error: 'Not connected' });
+        const { targetPhone, contactPhone, contactName } = req.body;
+        const chatId = `${targetPhone}@c.us`;
+        const vcard = `BEGIN:VCARD\nVERSION:3.0\nFN:${contactName}\nTEL;type=CELL;type=VOICE:+${contactPhone}\nEND:VCARD`;
+        await whatsappClient.sendMessage(chatId, vcard, { parseVCards: true });
+        res.json({ success: true, message: `vCard ${contactName} sent` });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
 // ============== CONTACT DETAILS (from WhatsApp) ==============
 
 app.get('/api/whatsapp-contact/:phone', async (req, res) => {
