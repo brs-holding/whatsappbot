@@ -93,9 +93,24 @@ async function handleIncomingMessage(message) {
     const isCus = message.from.includes('@c.us');
     if (!isLid && !isCus) return;
 
-    const phone = message.from.replace('@c.us', '').replace('@lid', '');
+    let phone = message.from.replace('@c.us', '').replace('@lid', '');
+    let chatId = message.from;
+
+    // Resolve @lid to real phone number
+    if (isLid) {
+        try {
+            const contact = await message.getContact();
+            if (contact && contact.number) {
+                phone = contact.number.replace(/\D/g, '');
+                chatId = `${phone}@c.us`;
+                console.log(chalk.gray(`   🔗 Resolved LID ${message.from} → ${phone}`));
+            }
+        } catch (e) {
+            console.log(chalk.yellow(`   ⚠️ Could not resolve LID: ${e.message}`));
+        }
+    }
+
     const text = (message.body || '').trim();
-    const chatId = message.from; // Keep original format for reply
 
     // Skip empty messages (media without text, stickers, etc.)
     if (!text || text.length === 0) {

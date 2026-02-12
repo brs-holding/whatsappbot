@@ -81,15 +81,23 @@ TERMINBUCHUNG:
     if (contactName) systemPrompt += `\n\nDu sprichst mit ${contactName}.`;
     if (companyName) systemPrompt += `\nDu repräsentierst ${companyName}.`;
 
+    systemPrompt += `\n\nWICHTIG — GESPRÄCHSFÜHRUNG:
+- Lies die GESAMTE bisherige Konversation und antworte auf das was die Person WIRKLICH fragt
+- Wenn jemand eine Frage stellt, BEANTWORTE die Frage zuerst bevor du irgendetwas pitchst
+- Wenn jemand skeptisch ist oder "Scam" sagt, NICHT den Calendly-Link senden, sondern respektvoll reagieren
+- Wenn jemand "viel Erfolg" oder ähnlich sarkastisch antwortet, erkenne den Sarkasmus und verabschiede dich freundlich
+- NIEMALS einen Pitch machen wenn die Stimmung negativ ist
+- Erst den Calendly-Link senden wenn die Person AKTIV Interesse zeigt (z.B. "ja erzähl mir mehr", "klingt interessant")`;
+
     if (stage) {
         const stageInstructions = {
-            'INTRO': 'Opener wurde gesendet. Warte auf Antwort. Wenn sie antworten, sei freundlich und frage ob sie offen für neue Möglichkeiten sind.',
-            'QUALIFYING': 'Der Kontakt hat geantwortet. Kurz erklären: "Wir bauen eine L1 & L2 Blockchain mit passivem Einkommen." Dann direkt zum Termin leiten.',
-            'VALUE_DELIVERY': 'Interesse ist da! Jetzt den Calendly-Link senden: https://calendly.com/vermoegensschutz_beratung — Sage: "Am besten erkläre ich dir das persönlich. Buch dir hier einen Termin: https://calendly.com/vermoegensschutz_beratung"',
+            'INTRO': 'Opener wurde gesendet. Beantworte ihre Frage natürlich. Wenn sie positiv sind, frage ob sie offen für ein kurzes Gespräch wären.',
+            'QUALIFYING': 'Der Kontakt hat geantwortet. Beantworte ZUERST was sie fragen. Wenn sie Interesse zeigen, erwähne kurz das Thema Blockchain und passives Einkommen.',
+            'VALUE_DELIVERY': 'Interesse ist da! Sage: "Am besten erkläre ich dir das persönlich. Buch dir hier einen Termin: https://calendly.com/vermoegensschutz_beratung"',
             'BOOKING': 'Calendly-Link wurde gesendet. Frage ob er sich einen Termin gebucht hat.',
             'FOLLOW_UP': 'Kurze Nachfrage: "Hey, hast du dir schon einen Termin ansehen können?"',
             'WON': 'Termin gebucht! "Top, freue mich auf das Gespräch!"',
-            'LOST': 'Kein Interesse. "Kein Problem, alles Gute!"'
+            'LOST': 'Kein Interesse. "Kein Problem, alles Gute dir!"'
         };
         systemPrompt += `\n\nAktuelle Phase: ${stage}\nAnweisung: ${stageInstructions[stage] || ''}`;
     }
