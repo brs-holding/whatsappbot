@@ -14,6 +14,7 @@ const { sendHumanLike, splitMessage, sleep } = require('./humanizer');
 const ai = require('./ai');
 const { killSwitch, validator, consent, escalation } = require('./safety');
 const { initPipeline, processMessage, generateCCB } = require('./pipeline');
+const { followup, booking, fingerprint } = require('./followup');
 const { startServer, setWhatsAppClient, setQRCode } = require('./web/server');
 
 // Browser config
@@ -149,6 +150,14 @@ async function safeSend(chatId, phone, message, runId = null) {
         console.log(chalk.red(`❌ Validator blocked: ${validation.violations.map(v => v.rule).join(', ')}`));
         events.add(phone, 'VALIDATION_FAILED', { violations: validation.violations, message });
         return false;
+    }
+
+    // Gate 3: Fingerprint check (anti-repetition)
+    const fpCheck = fingerprint.isTooSimilar(message, phone);
+    if (fpCheck.similar) {
+        console.log(chalk.yellow(`⚠️ Fingerprint: ${fpCheck.similarity}% similar to recent message — rewriting`));
+        events.add(phone, 'FINGERPRINT_FLAGGED', { similarity: fpCheck.similarity });
+        // Don't block, just log for now
     }
 
     // Gate 3: Send with human-like delay

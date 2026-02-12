@@ -13,6 +13,7 @@ const QRCode = require('qrcode');
 const { contacts, conversations, knowledge, templates, queue, events, settings, initializeDatabase } = require('../database/db');
 const { splitMessage, sendHumanLike } = require('../humanizer');
 const { killSwitch } = require('../safety');
+const { followup, booking, fingerprint } = require('../followup');
 
 const app = express();
 const PORT = 3000;
@@ -370,6 +371,49 @@ app.post('/api/contacts/batch-upload', upload.single('file'), (req, res) => {
         });
         require('fs').unlinkSync(req.file.path);
         res.json({ success: true, message: `Imported ${added} contacts`, total: added, batch_id });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// ============== FOLLOW-UP & BOOKING ==============
+
+app.get('/api/followups', (req, res) => {
+    try {
+        const eligible = followup.checkAll();
+        res.json({ success: true, followups: eligible.map(f => ({
+            phone: f.contact.phone, name: f.contact.name, stage: f.contact.pipeline_stage,
+            type: f.type, messageType: f.messageType, hoursAgo: f.hoursAgo
+        }))});
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.post('/api/followups/queue-all', (req, res) => {
+    try {
+        const result = followup.queueAll();
+        res.json({ success: true, ...result });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.get('/api/contacts/:phone/booking-offer', (req, res) => {
+    try {
+        const contact = contacts.get(req.params.phone);
+        if (!contact) return res.status(404).json({ success: false, error: 'Contact not found' });
+        const offer = booking.offerSlots(contact);
+        res.json({ success: true, ...offer });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.post('/api/contacts/:phone/book', (req, res) => {
+    try {
+        const { slot } = req.body;
+        const result = booking.confirm(req.params.phone, slot);
+        res.json({ success: true, ...result });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+app.get('/api/queue', (req, res) => {
+    try {
+        const pending = queue.getPending();
+        res.json({ success: true, queue: pending });
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
