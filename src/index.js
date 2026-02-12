@@ -503,8 +503,8 @@ async function start() {
     console.log(chalk.cyan('\n📱 WhatsApp Messager v2.0'));
     console.log(chalk.gray('─'.repeat(40)));
 
-    // Initialize database
-    initializeDatabase();
+    // Initialize database (async)
+    await initializeDatabase();
 
     // Initialize AI
     ai.initializeAI();
@@ -512,6 +512,10 @@ async function start() {
     // Start web dashboard
     startServer();
     console.log(chalk.green('🌐 Dashboard available at: http://localhost:3000'));
+
+    // Open dashboard in browser
+    const open = require('child_process').exec;
+    open('start http://localhost:3000');
 
     // Initialize WhatsApp client
     console.log(chalk.yellow('\n🔌 Connecting to WhatsApp...'));
