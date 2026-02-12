@@ -42,7 +42,7 @@ async function classifyIntent(message) {
 // ═══════════════ STAGE TRANSITIONS ═══════════════
 const transitions = {
     INTRO: (intent) => {
-        if (['interest', 'question', 'pricing'].includes(intent)) return 'QUALIFYING';
+        if (['interest', 'question', 'pricing', 'greeting'].includes(intent)) return 'QUALIFYING';
         if (intent === 'not_interested') return 'LOST';
         if (intent === 'confirmation') return 'QUALIFYING';
         return 'INTRO';
@@ -50,13 +50,13 @@ const transitions = {
     QUALIFYING: (intent) => {
         if (intent === 'appointment') return 'BOOKING';
         if (intent === 'not_interested') return 'LOST';
-        if (['interest', 'confirmation'].includes(intent)) return 'VALUE_DELIVERY';
+        // Any positive signal → fast-track to VALUE_DELIVERY (Calendly link)
+        if (['interest', 'confirmation', 'question', 'thanks'].includes(intent)) return 'VALUE_DELIVERY';
         return 'QUALIFYING';
     },
     VALUE_DELIVERY: (intent) => {
-        if (intent === 'appointment') return 'BOOKING';
+        if (['appointment', 'confirmation', 'interest', 'thanks'].includes(intent)) return 'BOOKING';
         if (intent === 'not_interested') return 'LOST';
-        if (intent === 'confirmation') return 'BOOKING';
         return 'VALUE_DELIVERY';
     },
     BOOKING: (intent) => {
