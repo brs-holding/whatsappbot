@@ -59,21 +59,7 @@ function initializeClient() {
         catch (e) { console.error(chalk.red('❌ Message handler error:'), e.message); killSwitch.recordError(); }
     });
 
-    // Also listen on 'message' event as backup
-    client.on('message', async (msg) => {
-        try { 
-            if (msg.fromMe) return;
-            // Check if we already handled this via message_create
-            const phone = msg.from.replace('@c.us', '').replace('@lid', '');
-            const recent = conversations.getRecent(phone, 1);
-            if (recent.length > 0 && recent[recent.length - 1].direction === 'incoming') {
-                const lastTime = new Date(recent[recent.length - 1].created_at).getTime();
-                if (Date.now() - lastTime < 5000) return; // Skip duplicate within 5 seconds
-            }
-            await handleIncomingMessage(msg);
-        }
-        catch (e) { console.error(chalk.red('❌ Message handler error:'), e.message); killSwitch.recordError(); }
-    });
+    // NOTE: Only using message_create — do NOT add 'message' event handler (causes duplicates)
 
     client.on('authenticated', () => console.log(chalk.blue('🔐 Authenticated')));
     client.on('auth_failure', (m) => console.error(chalk.red('❌ Auth failed:'), m));
