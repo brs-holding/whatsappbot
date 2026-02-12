@@ -482,54 +482,40 @@ app.post('/api/save-contact', async (req, res) => {
         const { phone, name } = req.body;
         const jid = `${phone}@c.us`;
         
-        // Explore WhatsApp Web internal APIs for contact saving
-        const result = await whatsappClient.pupPage.evaluate(async (jid, name) => {
+        // Use WhatsApp Web's internal saveContactAction
+        const result = await whatsappClient.pupPage.evaluate(async (jid, firstName, lastName) => {
             try {
-                const info = {};
-                
-                // Explore AddressbookContactUtils
-                if (window.Store.AddressbookContactUtils) {
-                    info.addressbookMethods = Object.getOwnPropertyNames(window.Store.AddressbookContactUtils).filter(k => typeof window.Store.AddressbookContactUtils[k] === 'function');
+                const utils = window.Store.AddressbookContactUtils;
+                if (!utils || !utils.saveContactAction) {
+                    return { success: false, error: 'saveContactAction not available' };
                 }
                 
-                // Explore ContactMethods
-                if (window.Store.ContactMethods) {
-                    info.contactMethods = Object.getOwnPropertyNames(window.Store.ContactMethods).filter(k => typeof window.Store.ContactMethods[k] === 'function');
-                }
-                
-                // Explore ContactCollection
-                if (window.Store.ContactCollection) {
-                    info.collectionMethods = Object.getOwnPropertyNames(Object.getPrototypeOf(window.Store.ContactCollection)).filter(k => typeof window.Store.ContactCollection[k] === 'function').slice(0, 20);
-                }
-                
-                // Explore Contact model methods
-                const contact = window.Store.Contact.get(jid);
-                if (contact) {
-                    info.contactProps = Object.getOwnPropertyNames(Object.getPrototypeOf(contact)).filter(k => typeof contact[k] === 'function').slice(0, 30);
-                    info.contactName = contact.name;
-                    info.contactPushname = contact.pushname;
-                    info.contactVerifiedName = contact.verifiedName;
-                }
-
-                // Try AddressbookContactUtils methods
-                if (window.Store.AddressbookContactUtils) {
-                    const utils = window.Store.AddressbookContactUtils;
-                    // Try common method patterns
-                    for (const method of ['addContact', 'saveContact', 'syncContact', 'addAddressbookContact', 'createContact']) {
-                        if (utils[method]) {
-                            try { 
-                                await utils[method](jid, name);
-                                return { success: true, method: `AddressbookContactUtils.${method}` };
-                            } catch(e) { info[`err_${method}`] = e.message; }
+                // Try different parameter formats
+                try {
+                    await utils.saveContactAction(jid, firstName, lastName || '');
+                    return { success: true, method: 'saveContactAction(jid, first, last)' };
+                } catch(e1) {
+                    try {
+                        await utils.saveContactAction({ jid, firstName, lastName: lastName || '' });
+                        return { success: true, method: 'saveContactAction({jid, firstName, lastName})' };
+                    } catch(e2) {
+                        try {
+                            // Try with contact object
+                            const contact = window.Store.Contact.get(jid);
+                            if (contact) {
+                                await utils.saveContactAction(contact, firstName, lastName || '');
+                                return { success: true, method: 'saveContactAction(contact, first, last)' };
+                            }
+                        } catch(e3) {
+                            return { success: false, errors: [e1.message, e2.message, e3?.message] };
                         }
+                        return { success: false, errors: [e1.message, e2.message] };
                     }
                 }
-                
-                return { success: false, info };
             } catch (e) {
                 return { success: false, error: e.message };
             }
-        }, jid, name);
+        }, jid, name.split(' ')[0], name.split(' ').slice(1).join(' '));
         
         res.json({ success: result.success, result });
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
