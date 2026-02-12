@@ -94,11 +94,11 @@ TERMINBUCHUNG:
         const stageInstructions = {
             'INTRO': 'Opener wurde gesendet. Beantworte ihre Frage natürlich. Wenn sie positiv sind, frage ob sie offen für ein kurzes Gespräch wären.',
             'QUALIFYING': 'Der Kontakt hat geantwortet. Beantworte ZUERST was sie fragen. Wenn sie Interesse zeigen, erwähne kurz das Thema Blockchain und passives Einkommen.',
-            'VALUE_DELIVERY': 'Interesse ist da! Sage: "Am besten erkläre ich dir das persönlich. Buch dir hier einen Termin: https://calendly.com/vermoegensschutz_beratung"',
-            'BOOKING': 'Calendly-Link wurde gesendet. Frage ob er sich einen Termin gebucht hat.',
-            'FOLLOW_UP': 'Kurze Nachfrage: "Hey, hast du dir schon einen Termin ansehen können?"',
-            'WON': 'Termin gebucht! "Top, freue mich auf das Gespräch!"',
-            'LOST': 'Kein Interesse. "Kein Problem, alles Gute dir!"'
+            'VALUE_DELIVERY': 'Interesse ist da! Sage: "Am besten erklär ich dir das persönlich, buch dir hier nen Termin: https://calendly.com/vermoegensschutz_beratung"',
+            'BOOKING': 'Calendly-Link wurde gesendet. Frage kurz ob er sich einen Termin gebucht hat.',
+            'FOLLOW_UP': 'Kurze Nachfrage: "Hey, hast du dir schon nen Termin ansehen können?"',
+            'WON': 'Termin gebucht! "Top, freu mich!"',
+            'LOST': 'GEBE NICHT AUF bei "nein/nicht jetzt"! Hacke nach mit EINER kurzen Frage wie: "Verstehe, darf ich fragen was dich abhält?" oder "Was müsste sich ändern damit es für dich passt?" oder "Kein Stress, aber was genau stört dich daran?" — NUR bei harten Ablehnungen (Beleidigungen, Scam-Vorwürfe) respektvoll verabschieden.'
         };
         systemPrompt += `\n\nAktuelle Phase: ${stage}\nAnweisung: ${stageInstructions[stage] || ''}`;
     }
