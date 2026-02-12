@@ -482,40 +482,50 @@ app.post('/api/save-contact', async (req, res) => {
         const { phone, name } = req.body;
         const jid = `${phone}@c.us`;
         
-        // Try using WhatsApp Web's internal API to save contact
+        // Explore WhatsApp Web internal APIs for contact saving
         const result = await whatsappClient.pupPage.evaluate(async (jid, name) => {
             try {
-                // Method 1: Try WWebJS internal store
+                const info = {};
+                
+                // Explore AddressbookContactUtils
+                if (window.Store.AddressbookContactUtils) {
+                    info.addressbookMethods = Object.getOwnPropertyNames(window.Store.AddressbookContactUtils).filter(k => typeof window.Store.AddressbookContactUtils[k] === 'function');
+                }
+                
+                // Explore ContactMethods
+                if (window.Store.ContactMethods) {
+                    info.contactMethods = Object.getOwnPropertyNames(window.Store.ContactMethods).filter(k => typeof window.Store.ContactMethods[k] === 'function');
+                }
+                
+                // Explore ContactCollection
+                if (window.Store.ContactCollection) {
+                    info.collectionMethods = Object.getOwnPropertyNames(Object.getPrototypeOf(window.Store.ContactCollection)).filter(k => typeof window.Store.ContactCollection[k] === 'function').slice(0, 20);
+                }
+                
+                // Explore Contact model methods
                 const contact = window.Store.Contact.get(jid);
                 if (contact) {
-                    // Try to set the name via internal method
-                    if (window.Store.Contact.gapiPhoneContactAdd) {
-                        await window.Store.Contact.gapiPhoneContactAdd(jid, name, name);
-                        return { success: true, method: 'gapiPhoneContactAdd' };
-                    }
-                    if (window.Store.Contact.addPhoneContact) {
-                        await window.Store.Contact.addPhoneContact(jid, name);
-                        return { success: true, method: 'addPhoneContact' };
-                    }
-                    // Try syncing
-                    if (contact.setName) {
-                        contact.setName(name);
-                        return { success: true, method: 'setName' };
+                    info.contactProps = Object.getOwnPropertyNames(Object.getPrototypeOf(contact)).filter(k => typeof contact[k] === 'function').slice(0, 30);
+                    info.contactName = contact.name;
+                    info.contactPushname = contact.pushname;
+                    info.contactVerifiedName = contact.verifiedName;
+                }
+
+                // Try AddressbookContactUtils methods
+                if (window.Store.AddressbookContactUtils) {
+                    const utils = window.Store.AddressbookContactUtils;
+                    // Try common method patterns
+                    for (const method of ['addContact', 'saveContact', 'syncContact', 'addAddressbookContact', 'createContact']) {
+                        if (utils[method]) {
+                            try { 
+                                await utils[method](jid, name);
+                                return { success: true, method: `AddressbookContactUtils.${method}` };
+                            } catch(e) { info[`err_${method}`] = e.message; }
+                        }
                     }
                 }
                 
-                // Method 2: Try ContactSyncAction
-                if (window.Store.ContactSyncAction) {
-                    await window.Store.ContactSyncAction.syncContact(jid, name, name);
-                    return { success: true, method: 'ContactSyncAction' };
-                }
-
-                // Method 3: Try using phonebook sync
-                if (window.Store.SyncAction) {
-                    return { success: false, error: 'SyncAction exists but no sync method found', available: Object.keys(window.Store).filter(k => k.toLowerCase().includes('contact')).join(',') };
-                }
-
-                return { success: false, error: 'No internal method found', storeKeys: Object.keys(window.Store).filter(k => k.toLowerCase().includes('contact')).join(',') };
+                return { success: false, info };
             } catch (e) {
                 return { success: false, error: e.message };
             }
