@@ -62,12 +62,20 @@ function initializeClient() {
 
 // ═══════════════ MESSAGE HANDLER (production pipeline) ═══════════════
 async function handleIncomingMessage(message) {
-    // Skip groups + status
+    // Skip groups, status, LID format, broadcasts
     if (message.from.includes('@g.us') || message.isStatus) return;
+    if (message.from.includes('@lid') || message.from.includes('@broadcast')) return;
+    if (!message.from.includes('@c.us')) return;
 
     const phone = message.from.replace('@c.us', '');
-    const text = message.body;
+    const text = (message.body || '').trim();
     const chatId = `${phone}@c.us`;
+
+    // Skip empty messages (media without text, stickers, etc.)
+    if (!text || text.length === 0) {
+        console.log(chalk.gray(`   ⏭️ [${phone}] Skipped empty message (media/sticker)`));
+        return;
+    }
 
     console.log(chalk.cyan(`\n📩 [${phone}] ${text}`));
 
