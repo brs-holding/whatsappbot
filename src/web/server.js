@@ -59,9 +59,12 @@ function setQRCode(qr) {
 
 // Status
 app.get('/api/status', (req, res) => {
+    let myNumber = null;
+    try { if (whatsappClient && whatsappClient.info) myNumber = whatsappClient.info.wid.user; } catch(e) {}
     res.json({
         connected: isConnected,
         qr: currentQR,
+        myNumber,
         timestamp: new Date().toISOString()
     });
 });
