@@ -74,11 +74,18 @@ VERKAUFSREGELN:
 - Nach maximal 2-3 Nachrichten den Calendly-Link senden
 - IMMER zum Termin führen, nie zu viel verraten
 
-UMGANG MIT ABLEHNUNG (SEHR WICHTIG):
-- Bei "kein Interesse", "nein danke", "brauch ich nicht" → NICHT sofort aufgeben!
-- Frage nach dem WARUM: "Verstehe, darf ich fragen was dich davon abhält?" oder "Was müsste sich ändern damit es für dich interessant wäre?"
-- Gib dem Kontakt einen GRUND weiterzureden: "Viele waren anfangs skeptisch, nach dem Gespräch sah es anders aus"
-- Erst nach der DRITTEN klaren Ablehnung höflich verabschieden
+UMGANG MIT ABLEHNUNG (EXTREM WICHTIG — DAS HÄUFIGSTE SZENARIO):
+Folgende Nachrichten sind ALLE Ablehnungen: "nein", "nein danke", "danke nein", "danke nen", "ne", "nö", "kein Interesse", "brauch ich nicht", "passt nicht", "hab keine Zeit"
+- NIEMALS mit "Gerne!" antworten wenn jemand höflich ablehnt — das ist ablehnend gemeint!
+- Stattdessen: Zeige Verständnis und gib einen KONKRETEN Grund warum ein Gespräch sich lohnt
+- Beispiel-Antworten bei Ablehnung:
+  "Verstehe, wieso nicht? Ich hab tatsächlich was Spannendes im Bereich Vermögensschutz, das lohnt sich kurz anzuhören."
+  "Schade, darf ich fragen was dich abhält? Viele waren anfangs skeptisch und haben es dann doch nicht bereut."
+  "Kein Stress, aber nur mal so gefragt: hast du dich schon mal mit passivem Einkommen über Blockchain beschäftigt?"
+  "Verstehe, was müsste sich ändern damit es für dich interessant wäre?"
+- NIEMALS direkt aufgeben — frage IMMER nach dem Warum
+- NIEMALS "Gerne" oder "Danke" sagen wenn jemand NEIN sagt
+- Erst nach der DRITTEN klaren Ablehnung höflich verabschieden: "Alles klar, wünsch dir alles Gute!"
 - Bei Beleidigungen oder "Scam"-Vorwürfen sofort respektvoll verabschieden
 
 TERMINBUCHUNG:
@@ -178,11 +185,26 @@ async function generateFirstMessage(contact, purpose = 'outreach') {
 async function analyzeIntent(message) {
     if (!openai) return { intent: 'unknown', confidence: 0 };
 
+    // Quick local check for common German rejections (faster + more reliable than AI)
+    const msg = message.toLowerCase().trim();
+    const rejectionPatterns = [
+        'nein', 'ne ', 'nö', 'nee', 'danke nen', 'danke nein', 'nein danke', 'kein interesse',
+        'brauch ich nicht', 'passt nicht', 'nicht interessiert', 'lass mal', 'leider nein',
+        'leider nicht', 'nicht für mich', 'kein bedarf', 'no thanks', 'no thank', 'not interested'
+    ];
+    if (rejectionPatterns.some(p => msg.includes(p) || msg === p.trim())) {
+        return { intent: 'not_interested', confidence: 0.95 };
+    }
+
     try {
         const completion = await openai.chat.completions.create({
             model: 'gpt-3.5-turbo',
             messages: [
-                { role: 'system', content: `Classify the intent. Respond with only one of: greeting, question, interest, not_interested, objection, confirmation, thanks, other` },
+                { role: 'system', content: `Classify the WhatsApp message intent. 
+
+IMPORTANT: If the person says ANY form of "no", "no thanks", "danke nein/nen", "nö", "ne", "kein Interesse", "nicht interessiert", "brauch ich nicht" → classify as not_interested. Do NOT classify polite rejections as "thanks".
+
+Respond with ONLY one word: greeting, question, interest, not_interested, objection, confirmation, thanks, other` },
                 { role: 'user', content: message }
             ],
             max_tokens: 20,
