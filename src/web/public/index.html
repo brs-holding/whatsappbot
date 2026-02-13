@@ -74,7 +74,13 @@ pre{background:#0a0a1a;padding:12px;border-radius:6px;overflow-x:auto;font-size:
 <div class="container">
 <header>
     <h1>📱 WhatsApp Sales Operator</h1>
-    <div class="status"><span class="dot" id="dot"></span><span id="statusTxt">...</span></div>
+    <div class="status" style="display:flex;align-items:center;gap:12px">
+        <span class="dot" id="dot"></span>
+        <span id="statusTxt">...</span>
+        <span id="liveNumber" style="font-size:14px;font-weight:bold;color:#25D366"></span>
+        <button class="btn-sm btn-danger" id="disconnectBtn" style="display:none" onclick="disconnectWA()">Disconnect</button>
+        <button class="btn-sm" id="reconnectBtn" style="display:none" onclick="reconnectWA()">🔄 New Number</button>
+    </div>
 </header>
 
 <div class="stats" id="kpiBar"></div>
@@ -246,7 +252,33 @@ async function checkStatus(){
     try{const r=await(await fetch(A+'/status')).json();
     document.getElementById('dot').className='dot'+(r.connected?' on':'');
     document.getElementById('statusTxt').textContent=r.connected?'Connected':'Disconnected';
+    const numEl=document.getElementById('liveNumber');
+    const dcBtn=document.getElementById('disconnectBtn');
+    const rcBtn=document.getElementById('reconnectBtn');
+    if(r.connected && r.myNumber){
+        numEl.textContent='📱 +'+r.myNumber;
+        dcBtn.style.display='inline-block';
+        rcBtn.style.display='inline-block';
+    }else{
+        numEl.textContent='';
+        dcBtn.style.display='none';
+        rcBtn.style.display=r.connected?'none':'inline-block';
+    }
     }catch(e){document.getElementById('statusTxt').textContent='Offline'}
+}
+
+async function disconnectWA(){
+    if(!confirm('Disconnect WhatsApp? You will need to scan QR again.'))return;
+    const r=await(await fetch(A+'/disconnect',{method:'POST'})).json();
+    alert(r.message||r.error);checkStatus();
+}
+
+async function reconnectWA(){
+    if(!confirm('Switch number? Current session will be destroyed.'))return;
+    const r=await(await fetch(A+'/reconnect',{method:'POST'})).json();
+    alert(r.message||r.error);
+    // Switch to Connect tab to show QR
+    show('connect');checkStatus();
 }
 
 // ── KPIs ──
@@ -588,7 +620,7 @@ function showOutreachConfirm(){
                 <p style="font-size:13px;color:#25D366;margin-bottom:8px">📋 What will happen:</p>
                 <p style="font-size:13px;opacity:.8">1. Numbers added to contacts</p>
                 <p style="font-size:13px;opacity:.8">2. AI generates unique opener for each</p>
-                <p style="font-size:13px;opacity:.8">3. Messages sent with 2-5 min delays</p>
+                <p style="font-size:13px;opacity:.8">3. Messages sent with 1-1.5 min delays (25 min break after 15)</p>
                 <p style="font-size:13px;opacity:.8">4. Auto follow-up if no reply in 8 min</p>
                 <p style="font-size:13px;opacity:.8">5. 3-strike rule on rejections</p>
             </div>
@@ -632,7 +664,7 @@ async function executeOutreachFromBulk(){
                     <div style="font-size:48px;margin-bottom:15px">✅</div>
                     <h2 style="color:#25D366;margin-bottom:10px">Outreach Started!</h2>
                     <p style="font-size:16px;margin-bottom:5px">${r.message}</p>
-                    <p style="opacity:.6;margin-bottom:20px">Messages sending with 2-5 min delays between each</p>
+                    <p style="opacity:.6;margin-bottom:20px">Messages sending with 1-1.5 min delays (25 min break after 15)</p>
                     <div style="background:#0d1a30;padding:15px;border-radius:8px;margin-bottom:20px">
                         <p style="font-size:13px;opacity:.8">🔄 Auto follow-up: every 8 min if no reply</p>
                         <p style="font-size:13px;opacity:.8">📊 Track progress on Dashboard & Pipeline tabs</p>

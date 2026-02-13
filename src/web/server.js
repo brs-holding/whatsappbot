@@ -69,6 +69,34 @@ app.get('/api/status', (req, res) => {
     });
 });
 
+// Disconnect WhatsApp
+app.post('/api/disconnect', async (req, res) => {
+    try {
+        if (whatsappClient) {
+            await whatsappClient.logout();
+            isConnected = false;
+            currentQR = null;
+        }
+        res.json({ success: true, message: 'Disconnected' });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
+// Reconnect WhatsApp (triggers new QR)
+app.post('/api/reconnect', async (req, res) => {
+    try {
+        if (whatsappClient) {
+            try { await whatsappClient.destroy(); } catch(e) {}
+        }
+        isConnected = false;
+        currentQR = null;
+        // Signal to main process to reinitialize
+        if (global.reinitializeClient) {
+            global.reinitializeClient();
+        }
+        res.json({ success: true, message: 'Reconnecting — scan new QR code' });
+    } catch (e) { res.status(500).json({ success: false, error: e.message }); }
+});
+
 // QR Code endpoint - returns data URL image
 app.get('/api/qr', async (req, res) => {
     if (isConnected) {

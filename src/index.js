@@ -285,6 +285,13 @@ async function start() {
 
     require('child_process').exec('start http://localhost:3000');
 
+    // Expose reinitialize for reconnect from dashboard
+    global.reinitializeClient = () => {
+        console.log(chalk.yellow('\n🔄 Reinitializing WhatsApp client...'));
+        initializeClient();
+        setTimeout(() => { if (client) setWhatsAppClient(client); }, 2000);
+    };
+
     console.log(chalk.yellow('\n🔌 Connecting to WhatsApp...'));
     initializeClient();
 

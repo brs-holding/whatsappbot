@@ -132,11 +132,17 @@ async function executeCampaign(whatsappClient, campaign) {
         }
 
         try {
-            // Staggered delay: 2-5 minutes between messages
+            // Staggered delay: 1-1.5 min between messages, 25 min break every 15
             if (i > 0) {
-                const delay = Math.floor(Math.random() * 180000) + 120000;
-                console.log(`   ⏳ Waiting ${Math.round(delay/1000)}s...`);
-                await new Promise(r => setTimeout(r, delay));
+                // Every 15 messages → 25 minute cooldown
+                if (i % 15 === 0) {
+                    console.log(`   ☕ 15 messages sent — 25 min cooldown break...`);
+                    await new Promise(r => setTimeout(r, 25 * 60 * 1000));
+                } else {
+                    const delay = Math.floor(Math.random() * 30000) + 60000; // 60-90 seconds
+                    console.log(`   ⏳ Waiting ${Math.round(delay/1000)}s...`);
+                    await new Promise(r => setTimeout(r, delay));
+                }
             }
 
             // Send message
