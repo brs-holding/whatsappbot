@@ -101,12 +101,25 @@ app.get('/api/contacts', (req, res) => {
     }
 });
 
-// Add contact
-app.post('/api/contacts', (req, res) => {
+// Default opener template for auto-outreach
+const DEFAULT_OPENER = "Hey, ich hab deine Nummer aus der M3 Gruppe, bist du auch im Blockchain-Bereich unterwegs?";
+
+// Add contact — auto-starts outreach
+app.post('/api/contacts', async (req, res) => {
     try {
         const { phone, name, company, email, notes } = req.body;
-        contacts.add(phone, name, company, email, notes);
-        res.json({ success: true, message: 'Contact added' });
+        const cleanPhone = phone.replace(/\D/g, '');
+        contacts.add(cleanPhone, name, company, email, notes);
+        
+        // Auto-start outreach if WhatsApp connected and no prior conversation
+        const existing = conversations.getByPhone(cleanPhone);
+        if (whatsappClient && isConnected && existing.length === 0) {
+            const campaign = await prepareCampaign([cleanPhone], DEFAULT_OPENER, { batch_type: 'auto' });
+            res.json({ success: true, message: 'Contact added + outreach started' });
+            executeCampaign(whatsappClient, campaign).catch(e => console.error('Auto-outreach error:', e));
+        } else {
+            res.json({ success: true, message: 'Contact added' });
+        }
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
@@ -592,21 +605,32 @@ app.get('/api/contacts/:phone/pfp', async (req, res) => {
 
 // ============== BULK ADD (comma-separated) ==============
 
-app.post('/api/contacts/bulk-add', (req, res) => {
+app.post('/api/contacts/bulk-add', async (req, res) => {
     try {
         const { phones, batch_type, pitch_project } = req.body;
         if (!phones) return res.status(400).json({ success: false, error: 'No phones provided' });
         const phoneList = phones.split(',').map(p => p.trim().replace(/\D/g, '')).filter(p => p.length > 5);
-        let added = 0;
+        
+        // Filter to only new contacts (no prior conversations)
+        const newPhones = [];
         phoneList.forEach(phone => {
             contacts.add(phone, null, null, null, null, {
                 batch_type: batch_type || 'manual',
                 pitch_project: pitch_project || null,
                 consent_status: 'UNKNOWN'
             });
-            added++;
+            const existing = conversations.getByPhone(phone);
+            if (existing.length === 0) newPhones.push(phone);
         });
-        res.json({ success: true, message: `Added ${added} contacts`, total: added, phones: phoneList });
+
+        // Auto-start outreach for new contacts
+        if (whatsappClient && isConnected && newPhones.length > 0) {
+            const campaign = await prepareCampaign(newPhones, DEFAULT_OPENER, { batch_type: batch_type || 'manual' });
+            res.json({ success: true, message: `Added ${phoneList.length} contacts, outreach started for ${newPhones.length}`, total: phoneList.length, outreachStarted: newPhones.length });
+            executeCampaign(whatsappClient, campaign).catch(e => console.error('Bulk outreach error:', e));
+        } else {
+            res.json({ success: true, message: `Added ${phoneList.length} contacts`, total: phoneList.length, phones: phoneList });
+        }
     } catch (e) { res.status(500).json({ success: false, error: e.message }); }
 });
 
