@@ -113,17 +113,15 @@ pre{background:#0a0a1a;padding:12px;border-radius:6px;overflow-x:auto;font-size:
 <!-- Contacts -->
 <div class="panel" id="contacts-panel">
     <div class="grid">
-        <div class="card"><h3>➕ Add Contact</h3>
-            <input id="cPhone" placeholder="Phone (country code, no +)">
-            <input id="cName" placeholder="Name"><input id="cCompany" placeholder="Company">
-            <button onclick="addContact()">Add</button>
-        </div>
-        <div class="card"><h3>📋 Quick Add (Comma-Separated)</h3>
-            <textarea id="bulkPhones" rows="3" placeholder="Enter phone numbers separated by commas&#10;e.g. 4917612345678, 4915123456789, 491761234567"></textarea>
-            <input id="bulkBatchType" placeholder="Batch type (e.g. crypto_group)">
-            <input id="bulkProject" placeholder="Pitch project (e.g. M3)">
-            <button onclick="bulkAdd()">➕ Add All</button>
-            <div id="bulkResult" style="margin-top:8px;font-size:12px"></div>
+        <div class="card" style="grid-column:1/-1">
+            <h3>🚀 Add Numbers & Start Outreach</h3>
+            <p style="font-size:13px;opacity:.6;margin-bottom:12px">Paste phone numbers below — outreach starts automatically with unique opener variations</p>
+            <textarea id="bulkPhones" rows="4" placeholder="Paste phone numbers here (comma or line separated)&#10;e.g. 436641142284, 436641066160&#10;or one per line" style="font-size:14px"></textarea>
+            <div style="display:flex;gap:10px;margin-top:8px;flex-wrap:wrap;align-items:center">
+                <button onclick="showOutreachConfirm()" style="font-size:15px;padding:12px 25px">🚀 Add & Start Outreach</button>
+                <span id="bulkCount" style="font-size:13px;opacity:.6"></span>
+            </div>
+            <div id="bulkResult" style="margin-top:10px;font-size:13px"></div>
         </div>
     </div>
     <div class="grid">
@@ -562,6 +560,106 @@ function show(name){
     if(name==='settings')loadSettings();
     if(name==='connect')loadQR();
     if(name==='dash'){loadPipeline();loadHumanRequired();loadRecentEvents();}
+}
+
+// ── Outreach Confirm Popup ──
+function parsePhoneInput(raw){
+    return raw.replace(/\n/g,',').split(',').map(p=>p.trim().replace(/[^0-9]/g,'')).filter(p=>p.length>5);
+}
+
+// Live phone counter
+document.getElementById('bulkPhones')?.addEventListener('input',function(){
+    const phones=parsePhoneInput(this.value);
+    document.getElementById('bulkCount').textContent=phones.length>0?`${phones.length} numbers detected`:'';
+});
+
+function showOutreachConfirm(){
+    const raw=document.getElementById('bulkPhones').value;
+    const phones=parsePhoneInput(raw);
+    if(phones.length===0)return alert('Paste some phone numbers first');
+    
+    // Show confirmation popup
+    const html=`
+        <div style="text-align:center;padding:20px">
+            <div style="font-size:48px;margin-bottom:15px">🚀</div>
+            <h2 style="color:#25D366;margin-bottom:10px">Start Outreach?</h2>
+            <p style="font-size:16px;margin-bottom:20px"><strong>${phones.length}</strong> new M3 community numbers</p>
+            <div style="background:#0d1a30;padding:15px;border-radius:8px;margin-bottom:20px;text-align:left">
+                <p style="font-size:13px;color:#25D366;margin-bottom:8px">📋 What will happen:</p>
+                <p style="font-size:13px;opacity:.8">1. Numbers added to contacts</p>
+                <p style="font-size:13px;opacity:.8">2. AI generates unique opener for each</p>
+                <p style="font-size:13px;opacity:.8">3. Messages sent with 2-5 min delays</p>
+                <p style="font-size:13px;opacity:.8">4. Auto follow-up if no reply in 8 min</p>
+                <p style="font-size:13px;opacity:.8">5. 3-strike rule on rejections</p>
+            </div>
+            <div style="background:#0a0a1a;padding:12px;border-radius:6px;margin-bottom:20px;max-height:150px;overflow-y:auto;text-align:left">
+                ${phones.map((p,i)=>`<span style="display:inline-block;margin:2px 4px;padding:3px 8px;background:#1a2a40;border-radius:4px;font-size:12px">+${p}</span>`).join('')}
+            </div>
+            <div style="display:flex;gap:12px;justify-content:center">
+                <button onclick="closeModal()" class="btn-outline" style="padding:12px 30px">Cancel</button>
+                <button onclick="executeOutreachFromBulk()" style="padding:12px 30px;font-size:15px">🚀 Start Outreach</button>
+            </div>
+        </div>`;
+    
+    document.getElementById('modalTitle').textContent='';
+    document.getElementById('modalContent').innerHTML=html;
+    document.getElementById('modal').style.display='block';
+}
+
+async function executeOutreachFromBulk(){
+    const raw=document.getElementById('bulkPhones').value;
+    const phones=parsePhoneInput(raw);
+    
+    // Update modal to show progress
+    document.getElementById('modalContent').innerHTML=`
+        <div style="text-align:center;padding:40px">
+            <div style="font-size:48px;margin-bottom:15px">⏳</div>
+            <h2 style="color:#f39c12;margin-bottom:10px">Generating AI openers...</h2>
+            <p style="opacity:.7">Creating unique variations for ${phones.length} contacts</p>
+            <div style="margin-top:20px;height:4px;background:#222;border-radius:2px;overflow:hidden">
+                <div style="width:30%;height:100%;background:#25D366;animation:progress 2s infinite;border-radius:2px"></div>
+            </div>
+        </div>
+        <style>@keyframes progress{0%{width:10%}50%{width:70%}100%{width:10%}}</style>`;
+    
+    try{
+        const r=await(await fetch(A+'/contacts/bulk-add',{method:'POST',headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({phones:phones.join(','),batch_type:'m3_community',pitch_project:'M3'})})).json();
+        
+        if(r.success){
+            document.getElementById('modalContent').innerHTML=`
+                <div style="text-align:center;padding:40px">
+                    <div style="font-size:48px;margin-bottom:15px">✅</div>
+                    <h2 style="color:#25D366;margin-bottom:10px">Outreach Started!</h2>
+                    <p style="font-size:16px;margin-bottom:5px">${r.message}</p>
+                    <p style="opacity:.6;margin-bottom:20px">Messages sending with 2-5 min delays between each</p>
+                    <div style="background:#0d1a30;padding:15px;border-radius:8px;margin-bottom:20px">
+                        <p style="font-size:13px;opacity:.8">🔄 Auto follow-up: every 8 min if no reply</p>
+                        <p style="font-size:13px;opacity:.8">📊 Track progress on Dashboard & Pipeline tabs</p>
+                    </div>
+                    <button onclick="closeModal()" style="padding:12px 30px">👍 Got it</button>
+                </div>`;
+            document.getElementById('bulkPhones').value='';
+            document.getElementById('bulkCount').textContent='';
+            loadContacts();loadKPIs();
+        }else{
+            document.getElementById('modalContent').innerHTML=`
+                <div style="text-align:center;padding:40px">
+                    <div style="font-size:48px;margin-bottom:15px">❌</div>
+                    <h2 style="color:#e74c3c">Error</h2>
+                    <p>${r.error||r.message}</p>
+                    <button onclick="closeModal()" style="margin-top:15px">Close</button>
+                </div>`;
+        }
+    }catch(e){
+        document.getElementById('modalContent').innerHTML=`
+            <div style="text-align:center;padding:40px">
+                <div style="font-size:48px;margin-bottom:15px">❌</div>
+                <h2 style="color:#e74c3c">Connection Error</h2>
+                <p>${e.message}</p>
+                <button onclick="closeModal()" style="margin-top:15px">Close</button>
+            </div>`;
+    }
 }
 
 // ── Init ──
