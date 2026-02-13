@@ -41,7 +41,10 @@ const ESCALATION_KEYWORDS = [
 const DND_KEYWORDS = [
     'stop', 'unsubscribe', 'remove me', 'don\'t contact',
     'leave me alone', 'block', 'no more messages',
-    'opt out', 'opt-out', 'delete my number'
+    'opt out', 'opt-out', 'delete my number',
+    'hör auf', 'lass mich in ruhe', 'nicht mehr schreiben',
+    'bitte aufhören', 'keine nachrichten mehr', 'lösch meine nummer',
+    'schreib mir nicht mehr', 'will keine nachrichten'
 ];
 
 // ═══════════════ KILL SWITCH (4-layer) ═══════════════
@@ -190,7 +193,7 @@ const consent = {
         // Check for DND signals
         if (consent.checkDND(message)) {
             contacts.setDND(phone);
-            return { action: 'dnd_set', reply: "Got it, I won't message you again. Take care!" };
+            return { action: 'dnd_set', reply: "Alles klar, werde mich nicht mehr melden. Alles Gute!" };
         }
 
         // If they replied, they're at least soft opted in
@@ -264,7 +267,7 @@ const escalation = {
                 escalate: true,
                 triggers,
                 action: 'HUMAN_REQUIRED',
-                holdingReply: "Great question! Let me connect you with someone who can help you better with that.",
+                holdingReply: "Gute Frage, da verbinde ich dich am besten mit einem Kollegen der dir das genauer erklären kann.",
                 riskIncrease: triggers.length * 15
             };
         }

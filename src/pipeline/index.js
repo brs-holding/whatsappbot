@@ -40,33 +40,35 @@ async function classifyIntent(message) {
 }
 
 // ═══════════════ STAGE TRANSITIONS ═══════════════
+// NOTE: not_interested does NOT auto-transition to LOST anymore.
+// The 3-strike rejectionTracker in index.js handles LOST transitions.
+// This lets the AI push back on soft rejections before giving up.
 const transitions = {
     INTRO: (intent) => {
         if (['interest', 'question', 'pricing', 'greeting'].includes(intent)) return 'QUALIFYING';
-        if (intent === 'not_interested') return 'LOST';
         if (intent === 'confirmation') return 'QUALIFYING';
+        // not_interested → stay in INTRO (AI will push back)
         return 'INTRO';
     },
     QUALIFYING: (intent) => {
         if (intent === 'appointment') return 'BOOKING';
-        if (intent === 'not_interested') return 'LOST';
-        // Any positive signal → fast-track to VALUE_DELIVERY (Calendly link)
         if (['interest', 'confirmation', 'question', 'thanks'].includes(intent)) return 'VALUE_DELIVERY';
+        // not_interested → stay in QUALIFYING (AI will push back)
         return 'QUALIFYING';
     },
     VALUE_DELIVERY: (intent) => {
         if (['appointment', 'confirmation', 'interest', 'thanks'].includes(intent)) return 'BOOKING';
-        if (intent === 'not_interested') return 'LOST';
+        // not_interested → stay in VALUE_DELIVERY (AI will push back)
         return 'VALUE_DELIVERY';
     },
     BOOKING: (intent) => {
         if (intent === 'confirmation') return 'WON';
-        if (intent === 'not_interested') return 'LOST';
+        // not_interested → stay in BOOKING (AI will push back)
         return 'BOOKING';
     },
     FOLLOW_UP: (intent) => {
         if (['interest', 'question', 'confirmation'].includes(intent)) return 'QUALIFYING';
-        if (intent === 'not_interested') return 'LOST';
+        // not_interested → stay in FOLLOW_UP (AI will push back)
         return 'FOLLOW_UP';
     },
     WON: () => 'WON',

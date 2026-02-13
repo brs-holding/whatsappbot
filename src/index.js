@@ -14,7 +14,7 @@ const { sendHumanLike, splitMessage, sleep } = require('./humanizer');
 const ai = require('./ai');
 const { killSwitch, validator, consent, escalation } = require('./safety');
 const { initPipeline, processMessage, generateCCB } = require('./pipeline');
-const { followup, booking, fingerprint } = require('./followup');
+const { followup, booking, fingerprint, rejectionTracker } = require('./followup');
 const { initOutreach } = require('./outreach');
 const { startServer, setWhatsAppClient, setQRCode } = require('./web/server');
 
@@ -47,6 +47,43 @@ function initializeClient() {
         console.log(chalk.green('\n✅ WhatsApp connected!\n'));
         console.log(chalk.cyan('🌐 Dashboard: http://localhost:3000'));
         console.log(chalk.gray('📊 Pipeline active | 🛡️ Safety enabled | 🤖 AI ready\n'));
+
+        // ── Auto follow-up check every 2 minutes (for 8-min nudge sequence) ──
+        setInterval(async () => {
+            try {
+                if (!settings.isAutoReplyEnabled()) return;
+                if (!settings.isGlobalSendEnabled()) return;
+
+                const eligible = followup.checkAll();
+                if (eligible.length === 0) return;
+
+                for (const item of eligible) {
+                    const phone = item.contact.phone;
+                    const chatId = `${phone}@c.us`;
+                    const msg = followup.generateMessage(item.contact, item.messageType);
+
+                    // Skip if 3-strike rejection
+                    if (rejectionTracker.shouldGiveUp(phone)) continue;
+
+                    const sent = await safeSend(chatId, phone, msg);
+                    if (sent) {
+                        events.add(phone, 'AUTO_FOLLOWUP_SENT', {
+                            type: item.type,
+                            messageType: item.messageType,
+                            nudgeNumber: item.nudgeNumber || null
+                        });
+                        console.log(chalk.magenta(`   🔄 [${phone}] Auto follow-up: ${item.messageType}`));
+                    }
+
+                    // Small delay between contacts
+                    await sleep(3000 + Math.random() * 5000);
+                }
+            } catch (e) {
+                console.error(chalk.red('Follow-up interval error:'), e.message);
+            }
+        }, 2 * 60 * 1000); // Every 2 minutes
+
+        console.log(chalk.green('🔄 Auto follow-up: checking every 2 minutes'));
     });
 
     // Use message_create for more reliable message catching (fires for all messages)
@@ -146,6 +183,23 @@ async function handleIncomingMessage(message) {
     // ── Step 5: Run pipeline (intent + stage + CCB) ──
     const pipelineResult = await processMessage(phone, text);
     console.log(chalk.gray(`   Intent: ${pipelineResult.intent?.intent} | Stage: ${pipelineResult.previousStage} → ${pipelineResult.currentStage}`));
+
+    // ── Step 5b: 3-strike rejection check ──
+    if (rejectionTracker.shouldGiveUp(phone)) {
+        const { count, isHardRejection } = rejectionTracker.countRejections(phone);
+        if (isHardRejection) {
+            console.log(chalk.red(`🚫 [${phone}] HARD REJECTION — setting LOST`));
+            contacts.setStage(phone, 'LOST', 'Hard rejection (insult/scam)');
+            await safeSend(chatId, phone, 'Alles klar, wünsch dir alles Gute!');
+            return;
+        }
+        if (count >= 3) {
+            console.log(chalk.yellow(`🚫 [${phone}] 3x REJECTED — setting LOST`));
+            contacts.setStage(phone, 'LOST', `3x soft rejection`);
+            await safeSend(chatId, phone, 'Verstehe, kein Problem. Alles Gute dir!');
+            return;
+        }
+    }
 
     // ── Step 6: Generate AI response ──
     if (ai.isAvailable()) {
