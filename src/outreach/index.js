@@ -228,11 +228,23 @@ async function executeCampaign(whatsappClient, campaign) {
         const target = targets[i];
         const chatId = `${target.phone}@c.us`;
 
-        // Check consent
+        // Check consent — skip if already contacted or DND
         const contact = contacts.get(target.phone);
         if (contact?.consent_status === 'DND') {
             console.log(`   ⏭️ [${target.phone}] Skipped — DND`);
             results.push({ phone: target.phone, status: 'skipped', reason: 'DND' });
+            continue;
+        }
+        if (contact?.consent_status === 'SOFT_OPTIN_SENT' || contact?.consent_status === 'OPTED_IN') {
+            console.log(`   ⏭️ [${target.phone}] Skipped — already contacted (${contact.consent_status})`);
+            results.push({ phone: target.phone, status: 'skipped', reason: 'already_contacted' });
+            continue;
+        }
+        // Also skip if they have ANY conversation history
+        const existingConvs = conversations.getByPhone(target.phone);
+        if (existingConvs && existingConvs.length > 0) {
+            console.log(`   ⏭️ [${target.phone}] Skipped — has ${existingConvs.length} existing messages`);
+            results.push({ phone: target.phone, status: 'skipped', reason: 'has_conversation' });
             continue;
         }
 
