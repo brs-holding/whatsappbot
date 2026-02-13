@@ -13,53 +13,165 @@ function initOutreach() {
     if (process.env.OPENAI_API_KEY) openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 }
 
+// ═══════════════ HARDCODED FALLBACK VARIATIONS ═══════════════
+// Used when AI fails — ensures we NEVER send identical messages
+const FALLBACK_OPENERS = [
+    "Hey, ich hab deine Nummer aus der M3 Gruppe. Bist du auch im Blockchain-Bereich unterwegs?",
+    "Servus, ich kenn dich aus der M3 Gruppe! Interessierst du dich auch für Blockchain?",
+    "Moin! Du bist ja auch bei M3 dabei — bist du auch im Crypto-Bereich aktiv?",
+    "Hi, ich hab gesehen du bist bei M3 dabei. Bist du offen für Blockchain-Themen?",
+    "Grüß dich! Ich bin auch bei M3 und wollte fragen ob du dich für Blockchain interessierst?",
+    "Na, ich kenn dich aus der M3 Gruppe. Hast du Interesse an Blockchain?",
+    "Hoi, du bist ja auch bei M3 dabei — beschäftigst du dich auch mit Blockchain?",
+    "Sali, ich hab deine Nummer über die M3 Gruppe. Blockchain ist auch dein Ding?",
+    "Moin Moin! Ich kenn dich von M3, wollte mal fragen ob Blockchain auch dein Thema ist?",
+    "Hey, wir sind beide bei M3 dabei. Bist du zufällig auch im Blockchain-Space?",
+    "Servus! Hab dich bei M3 gesehen, interessierst du dich für Blockchain?",
+    "Hi, ich bin auch bei M3 und wollt mal fragen — bist du im Crypto-Bereich unterwegs?",
+    "Na du, ich kenn dich aus der M3 Community. Hast du was mit Blockchain am Hut?",
+    "Grüß dich, ich bin auch bei M3. Blockchain ist auch dein Ding oder?",
+    "Hey, wir kennen uns über M3. Beschäftigst du dich auch mit Krypto-Themen?",
+    "Moin, ich hab deine Nummer aus der M3 Gruppe. Bist du offen für ein Gespräch über Blockchain?",
+    "Hoi, du bist ja auch in der M3 Community. Arbeitest du auch im Blockchain-Bereich?",
+    "Sali! Ich kenn dich von M3, hast du Interesse an Blockchain-Projekten?",
+    "Hi, ich bin auch Mitglied bei M3. Bist du auch im Blockchain-Bereich?",
+    "Servus, wir sind beide bei M3 dabei. Interessierst du dich vielleicht für Blockchain?",
+    "Hey, ich hab dich bei M3 gesehen. Bist du auch ins Thema Blockchain eingestiegen?",
+    "Na, ich kenn dich über die M3 Gruppe! Hast du Bock über Blockchain zu quatschen?",
+    "Moin Moin, ich bin auch bei M3. Bist du auch im Krypto-Bereich aktiv?",
+    "Grüß dich, ich hab deine Nummer aus M3. Blockchain ist auch dein Thema?",
+    "Hi, wir kennen uns über M3. Bist du auch im Blockchain-Space unterwegs?",
+    "Sali, hab dich in der M3 Community gefunden. Arbeitest du im Blockchain-Bereich?",
+    "Servus! Du bist ja auch bei M3, beschäftigst du dich mit Krypto?",
+    "Hey, ich bin ebenfalls bei M3 dabei. Interessierst du dich für Blockchain?",
+    "Moin! Ich kenn dich von M3, bist du offen für Crypto-Themen?",
+    "Na, hab deine Nummer über M3 bekommen. Hast du was mit Blockchain zu tun?"
+];
+
+/**
+ * Shuffle array (Fisher-Yates)
+ */
+function shuffleArray(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
+/**
+ * Get fallback variations (never identical)
+ */
+function getFallbackVariations(count) {
+    const shuffled = shuffleArray(FALLBACK_OPENERS);
+    const result = [];
+    for (let i = 0; i < count; i++) {
+        result.push(shuffled[i % shuffled.length]);
+    }
+    return result;
+}
+
+/**
+ * Try to parse JSON array from AI response, with multiple strategies
+ */
+function parseVariationsFromResponse(content) {
+    // Strategy 1: Direct JSON array match
+    const match = content.match(/\[[\s\S]*\]/);
+    if (match) {
+        try { return JSON.parse(match[0]); } catch(e) {}
+    }
+    
+    // Strategy 2: Fix common JSON issues (trailing commas, smart quotes)
+    if (match) {
+        try {
+            let fixed = match[0]
+                .replace(/,\s*\]/g, ']')           // trailing comma
+                .replace(/[\u201C\u201D]/g, '"')    // smart quotes
+                .replace(/[\u2018\u2019]/g, "'");   // smart single quotes
+            return JSON.parse(fixed);
+        } catch(e) {}
+    }
+    
+    // Strategy 3: Extract line-by-line (numbered list)
+    const lines = content.split('\n').filter(l => l.trim());
+    const extracted = [];
+    for (const line of lines) {
+        // Match: 1. "text" or 1) "text" or - "text"
+        const m = line.match(/^[\d\-\.\)]+\s*["""]?(.+?)["""]?\s*$/);
+        if (m && m[1].length > 20 && m[1].length < 200) {
+            extracted.push(m[1].replace(/^[""]|[""]$/g, ''));
+        }
+    }
+    if (extracted.length >= 3) return extracted;
+    
+    return null;
+}
+
 /**
  * Generate multiple unique variations of an opener template
+ * With retry logic and hardcoded fallback — NEVER returns identical messages
  */
 async function generateOpenerVariations(openerTemplate, count = 10, language = 'German') {
-    if (!openai) return Array(count).fill(openerTemplate);
+    if (!openai) {
+        console.log('⚠️ No OpenAI — using fallback variations');
+        return getFallbackVariations(count);
+    }
 
-    try {
-        const res = await openai.chat.completions.create({
-            model: 'gpt-3.5-turbo',
-            messages: [{
-                role: 'system',
-                content: `Du bist ein Experte für WhatsApp-Nachrichten. Erstelle ${count} EINZIGARTIGE Variationen der folgenden Nachricht.
+    // Try up to 3 times with AI
+    for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+            // Generate in batches of max 10 for reliability
+            const batchSize = Math.min(count, 10);
+            const res = await openai.chat.completions.create({
+                model: 'gpt-3.5-turbo',
+                messages: [{
+                    role: 'system',
+                    content: `Du bist ein WhatsApp-Nachrichten Experte. Erstelle GENAU ${batchSize} einzigartige Variationen.
 
 REGELN:
-1. Jede Variation muss ANDERS klingen, aber die GLEICHE Bedeutung haben
-2. Kurz halten — maximal 1-2 Sätze, unter 150 Zeichen
-3. Locker und freundlich, wie eine echte WhatsApp-Nachricht unter Kumpels
-4. KEINE Emojis oder nur minimal (max 1)
-5. Variiere die Anrede mit LOKALEN Grüßen: Servus, Moin, Sali, Hoi, Moin Moin, Hey, Hi, Na, Grüß dich — Satzstruktur und Wortauswahl variieren
-6. Sprache: ${language}
-7. IMMER "du" verwenden, NIEMALS "Sie" — casual und locker
-8. KEIN Link, KEIN Pitch, nur die Frage ob Interesse
-9. Klingt wie ein Kumpel der eine SMS schreibt, nicht wie ein Verkäufer
-10. NIEMALS "Aktivität", "aktiv", "engagiert", "unterwegs" verwenden — M3 ist ein Broadcast-Kanal wo keiner schreiben kann
-11. Stattdessen: "ich bin auch bei M3", "du bist ja auch bei M3 dabei", "ich kenn dich aus der M3 Gruppe"
-12. EINE zusammenhängende Nachricht, keine Fragmente
-Antworte als JSON-Array: ["variation1", "variation2", ...]`
-            }, {
-                role: 'user',
-                content: `Original-Opener: "${openerTemplate}"\n\nErstelle ${count} einzigartige Variationen.`
-            }],
-            max_tokens: 1500,
-            temperature: 0.9
-        });
+- Jede MUSS anders klingen (andere Wortwahl, andere Satzstruktur, andere Anrede)
+- Kurz: 1-2 Sätze, unter 150 Zeichen
+- Casual "du", wie ein Kumpel
+- Variiere Anreden: Servus, Moin, Sali, Hoi, Hey, Hi, Na, Grüß dich, Moin Moin
+- KEIN Link, keine Emojis (max 1)
+- NIEMALS: "aktiv", "Aktivität", "engagiert" — M3 ist ein Broadcast-Kanal
+- Stattdessen: "ich bin auch bei M3", "du bist bei M3 dabei", "kenn dich aus der M3 Gruppe"
+- Sprache: ${language}
 
-        const content = res.choices[0].message.content.trim();
-        // Parse JSON array from response
-        const match = content.match(/\[[\s\S]*\]/);
-        if (match) {
-            const variations = JSON.parse(match[0]);
-            return variations.slice(0, count);
+Antworte NUR mit einem JSON-Array, NICHTS anderes:
+["variation1", "variation2", ...]`
+                }, {
+                    role: 'user',
+                    content: `Vorlage: "${openerTemplate}"\nErstelle ${batchSize} Variationen.`
+                }],
+                max_tokens: 1200,
+                temperature: 0.95
+            });
+
+            const content = res.choices[0].message.content.trim();
+            const parsed = parseVariationsFromResponse(content);
+            
+            if (parsed && parsed.length >= 3) {
+                console.log(`✅ AI generated ${parsed.length} unique variations (attempt ${attempt})`);
+                
+                // If we need more than we got, combine with shuffled fallbacks
+                if (parsed.length < count) {
+                    const extra = getFallbackVariations(count - parsed.length);
+                    return [...parsed, ...extra];
+                }
+                return parsed.slice(0, count);
+            }
+            
+            console.log(`⚠️ AI variation attempt ${attempt} failed to parse — retrying...`);
+        } catch (e) {
+            console.error(`⚠️ AI variation attempt ${attempt} error: ${e.message}`);
         }
-        return Array(count).fill(openerTemplate);
-    } catch (e) {
-        console.error('Opener variation error:', e.message);
-        return Array(count).fill(openerTemplate);
     }
+
+    // All AI attempts failed — use hardcoded fallback (NEVER identical!)
+    console.log('⚠️ All AI attempts failed — using hardcoded fallback variations (all unique)');
+    return getFallbackVariations(count);
 }
 
 /**
